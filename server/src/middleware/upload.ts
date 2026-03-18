@@ -11,6 +11,7 @@ import {
   ALLOWED_DOCUMENT_MIMES,
   MAX_DOCUMENT_SIZE,
 } from '../validations/memory.validation.js';
+import { AppError } from '../utils/AppError.js';
 
 const storage = multer.memoryStorage();
 
@@ -27,7 +28,8 @@ export const documentUpload = multer({
       cb(null, true);
     } else {
       cb(
-        new Error(
+        new AppError(
+          415,
           `Unsupported file type: ${file.mimetype}. Allowed types: PDF, DOCX, TXT, MD.`,
         ),
       );
