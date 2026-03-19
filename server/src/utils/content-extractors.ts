@@ -96,31 +96,6 @@ export async function extractTextFromDocument(
 // Helpers
 // ---------------------------------------------------------------------------
 
-/**
- * Minimal HTML → text converter.
- * Strips tags, decodes common entities, and collapses whitespace.
- */
-function stripHtml(html: string): string {
-  return html
-    // Remove script / style blocks entirely
-    .replace(/<script[\s\S]*?<\/script>/gi, '')
-    .replace(/<style[\s\S]*?<\/style>/gi, '')
-    // Replace <br>, <p>, <div>, headings, <li> with newlines for readability
-    .replace(/<\/?(br|p|div|h[1-6]|li|tr)[^>]*>/gi, '\n')
-    // Strip remaining tags
-    .replace(/<[^>]+>/g, '')
-    // Decode common HTML entities
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&nbsp;/g, ' ')
-    // Collapse whitespace
-    .replace(/[ \t]+/g, ' ')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
-}
 
 /**
  * PDF text extraction with OCR fallback.
