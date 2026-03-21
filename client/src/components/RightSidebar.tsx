@@ -118,7 +118,9 @@ function RightSidebar() {
             </span>
           )}
         </div>
-        <p className="text-xs font-medium text-slate-400">Ask questions about your memories</p>
+        <p className="text-xs font-medium text-slate-400">
+          Ask questions about your memories
+        </p>
       </div>
 
       {/* Messages area */}
@@ -200,7 +202,9 @@ function RightSidebar() {
           </button>
         </div>
         <div className="text-center mt-2 pb-1">
-          <span className="text-[10px] text-slate-500">Neura AI can make mistakes. Verify important info.</span>
+          <span className="text-[10px] text-slate-500">
+            Neura AI can make mistakes. Verify important info.
+          </span>
         </div>
       </div>
     </aside>

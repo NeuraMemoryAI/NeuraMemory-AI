@@ -421,10 +421,15 @@ const ManageMemories = () => {
         <div className="w-full rounded-2xl border border-gray-700 bg-linear-to-r from-neutral-900 via-neutral-900 to-slate-900/60 p-4 sm:p-5 md:p-6">
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
             <div>
-              <p className="text-[11px] uppercase tracking-[0.16em] text-cyan-300 mb-2">Memory Workspace</p>
-              <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white">Manage Memories</h1>
+              <p className="text-[11px] uppercase tracking-[0.16em] text-cyan-300 mb-2">
+                Memory Workspace
+              </p>
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white">
+                Manage Memories
+              </h1>
               <p className="text-gray-300 text-sm md:text-base mt-2 max-w-2xl">
-                Organize your saved notes, revisit important context, and clean up entries you no longer need.
+                Organize your saved notes, revisit important context, and clean
+                up entries you no longer need.
               </p>
             </div>
             <div className="flex items-center gap-3 flex-wrap">
@@ -502,7 +507,9 @@ const ManageMemories = () => {
           )}
 
           {loading && (
-            <p className="text-gray-400 text-sm text-center py-8">Loading memories...</p>
+            <p className="text-gray-400 text-sm text-center py-8">
+              Loading memories...
+            </p>
           )}
           {error && (
             <p className="text-red-400 text-sm text-center py-8">{error}</p>

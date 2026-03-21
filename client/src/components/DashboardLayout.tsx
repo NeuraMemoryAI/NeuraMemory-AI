@@ -24,5 +24,10 @@ export default function DashboardLayout() {
                 </div>
             </div>
         </div>
-    );
+        <div className="hidden lg:flex flex-col shrink-0 h-full w-[360px] max-w-[420px]">
+          <RightSidebar />
+        </div>
+      </div>
+    </div>
+  );
 }

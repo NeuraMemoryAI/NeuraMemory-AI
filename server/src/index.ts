@@ -2,7 +2,6 @@ import express from 'express';
 import swaggerUi from 'swagger-ui-express';
 import cors from 'cors';
 import helmet from 'helmet';
-import cookieParser from 'cookie-parser';
 import { env } from './config/env.js';
 import authRouter from './routes/auth.route.js';
 import memoryRouter from './routes/memorie.route.js';
@@ -11,6 +10,7 @@ import swaggerSpec from './config/swagger.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { ensureUserIndexes } from './repositories/user.repository.js';
 import { getMongoClient } from './lib/mongodb.js';
+import mcpRouter from './routes/mcp.route.js';
 import { getQdrantClient, closeQdrantClient } from './lib/qdrant.js';
 
 const app = express();
@@ -19,8 +19,6 @@ app.use(express.json({ limit: '200kb' }));
 
 // cors addition
 const allowedOrigins = env.ALLOWED_ORIGINS.split(',').map((o: string) => o.trim()).filter(Boolean);
-
-app.use(cookieParser());
 
 app.use(
   cors({
@@ -32,18 +30,16 @@ app.use(
       }
     },
     credentials: true,
-  })
+  }),
 );
 
 // ---------------------------------------------------------------------------
-// API Documentation (Swagger UI) — non-production only
+// API Documentation (Swagger UI)
 // ---------------------------------------------------------------------------
-if (env.NODE_ENV !== 'production') {
-  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-  app.get('/api-docs/spec.json', (_req, res) => {
-    res.json(swaggerSpec);
-  });
-}
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.get('/api-docs/spec.json', (_req, res) => {
+  res.json(swaggerSpec);
+});
 
 // ---------------------------------------------------------------------------
 // Routes
@@ -51,6 +47,7 @@ if (env.NODE_ENV !== 'production') {
 app.use('/api/v1', authRouter);
 app.use('/api/v1/memories', memoryRouter);
 app.use('/api/v1/chat', chatRouter);
+app.use('/api/v1/mcp', mcpRouter);
 
 // ---------------------------------------------------------------------------
 // Error handler — must be registered after all routes

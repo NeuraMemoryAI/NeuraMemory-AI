@@ -9,19 +9,18 @@ import Signup from './components/Signup';
 import { api } from './lib/api';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const [status, setStatus] = useState<'loading' | 'auth' | 'unauth'>('loading');
+  const [status, setStatus] = useState<'loading' | 'auth' | 'unauth'>(
+    'loading',
+  );
 
   useEffect(() => {
-    api.get('/api/v1/me')
+    api
+      .get('/api/v1/me')
       .then(() => setStatus('auth'))
       .catch(() => setStatus('unauth'));
   }, []);
 
-  if (status === 'loading') return (
-    <div className="h-screen w-full bg-neutral-950 flex items-center justify-center">
-      <div className="w-8 h-8 border-2 border-sky-500 border-t-transparent rounded-full animate-spin" />
-    </div>
-  );
+  if (status === 'loading') return null;
   if (status === 'unauth') return <Navigate to="/login" replace />;
   return <>{children}</>;
 }
@@ -42,7 +41,14 @@ function AppContent() {
           </ProtectedRoute>
         }
       />
-      <Route path="/" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>} />
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout />
+          </ProtectedRoute>
+        }
+      />
     </Routes>
   );
 }
