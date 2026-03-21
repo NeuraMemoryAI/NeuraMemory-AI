@@ -39,6 +39,9 @@ export async function findUserByApiKey(
 
 /**
  * Finds a single user document by its MongoDB ObjectId string.
+ *
+ * @planned vNext
+ * Reserved for upcoming account/profile endpoints.
  */
 export async function findUserById(id: string): Promise<WithId<IUser> | null> {
   const { ObjectId } = await import('mongodb');

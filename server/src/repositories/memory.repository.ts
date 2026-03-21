@@ -10,7 +10,10 @@
 import { randomUUID } from 'node:crypto';
 import { getQdrantClient } from '../lib/qdrant.js';
 import { EMBEDDING_DIMENSION } from '../utils/embeddings.js';
-import type { StoredMemoryPayload, MemorySource } from '../types/memory.types.js';
+import type {
+  StoredMemoryPayload,
+  MemorySource,
+} from '../types/memory.types.js';
 
 const COLLECTION_NAME = 'memories';
 
@@ -140,11 +143,12 @@ export async function searchMemories(
 
 /**
  * Retrieve all memories for a user, optionally filtered by kind or source.
+ * Supports cursor-based pagination via `offset`.
  */
 export async function getMemoriesByUser(
   userId: string,
-  options?: { kind?: string; source?: MemorySource; limit?: number },
-): Promise<StoredMemoryPayload[]> {
+  options?: { kind?: string; source?: MemorySource; limit?: number; offset?: string | null },
+): Promise<{ points: StoredMemoryPayload[]; nextOffset: string | null }> {
   await ensureCollection();
   const client = getQdrantClient();
 
@@ -162,13 +166,15 @@ export async function getMemoriesByUser(
   const results = await client.scroll(COLLECTION_NAME, {
     filter: { must },
     limit: options?.limit ?? 100,
+    ...(options?.offset != null ? { offset: options.offset } : {}),
     with_payload: true,
     with_vector: false,
   });
 
-  return results.points.map(
-    (p) => p.payload as unknown as StoredMemoryPayload,
-  );
+  return {
+    points: results.points.map((p) => p.payload as unknown as StoredMemoryPayload),
+    nextOffset: results.next_page_offset ? String(results.next_page_offset) : null,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -194,6 +200,9 @@ export async function deleteMemoriesByUser(userId: string): Promise<void> {
 
 /**
  * Delete a specific memory point by its Qdrant ID.
+ *
+ * @planned vNext
+ * Reserved for future single-memory deletion endpoints.
  */
 export async function deleteMemoryById(pointId: string): Promise<void> {
   await ensureCollection();

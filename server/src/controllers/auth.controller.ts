@@ -7,6 +7,8 @@ import {
 } from '../services/auth.service.js';
 import { AppError } from '../utils/AppError.js';
 
+const COOKIE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
 const emailSchema = z
   .string({
     required_error: 'Email is required.',
@@ -88,7 +90,15 @@ export async function registerController(
     const { email, password } = result.data;
     const response = await registerService(email, password);
 
-    res.status(201).json(response);
+    res.cookie("authorization", response.token, {
+      httpOnly: true,
+      secure: process.env['NODE_ENV'] === "production",
+      sameSite: "lax",
+      maxAge: COOKIE_MAX_AGE_MS,
+    });
+
+    const { token: _token, ...safeResponse } = response;
+    res.status(201).json(safeResponse);
   } catch (err) {
     next(err);
   }
