@@ -84,6 +84,12 @@ test: ## Run API tests (requires running server)
 test-verbose: ## Run API tests with verbose output
 	cd server && VERBOSE=true ./test-routes.sh
 
+test-client: ## Run client unit tests (vitest)
+	cd client && pnpm vitest --run
+
+test-client-watch: ## Run client unit tests in watch mode
+	cd client && pnpm vitest
+
 lint-server: ## Run ESLint on server code
 	docker compose $(DEV_COMPOSE_FILES) exec server npm run lint
 

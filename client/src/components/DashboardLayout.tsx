@@ -13,7 +13,7 @@ export default function DashboardLayout() {
                     <Sidebar />
                 </div>
                 {/* Main content */}
-                <div className="flex-1 flex flex-col justify-center">
+                <div className="flex-1 flex flex-col">
                     <div className="h-full bg-neutral-900/90 rounded-2xl shadow-xl p-4 flex flex-col justify-center min-w-[280px]">
                         <MainArea />
                     </div>
@@ -24,10 +24,5 @@ export default function DashboardLayout() {
                 </div>
             </div>
         </div>
-        <div className="hidden lg:flex flex-col shrink-0 h-full w-[360px] max-w-[420px]">
-          <RightSidebar />
-        </div>
-      </div>
-    </div>
-  );
+    );
 }

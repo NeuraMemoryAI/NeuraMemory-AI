@@ -5,6 +5,7 @@ import {
   registerService,
   generateApiService,
 } from '../services/auth.service.js';
+import { findUserById } from '../repositories/user.repository.js';
 import { AppError } from '../utils/AppError.js';
 
 const COOKIE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
@@ -155,7 +156,6 @@ export async function meController(
     }
     
     // We can just import and use findUserById from repository
-    const { findUserById } = await import('../repositories/user.repository.js');
     const user = await findUserById(userId);
     if (!user) {
       throw new AppError(404, 'User not found');

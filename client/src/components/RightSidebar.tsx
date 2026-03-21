@@ -178,7 +178,7 @@ function RightSidebar() {
             value={input}
             onChange={handleTextareaChange}
             onKeyDown={handleKeyDown}
-            placeholder={!isEnabled ? 'Chat coming soon…' : streaming ? 'Neura is thinking…' : 'Message Neura AI…'}
+            placeholder={streaming ? 'Neura is thinking…' : 'Message Neura AI…'}
             className="flex-1 max-h-32 min-h-[24px] bg-transparent text-sm text-white placeholder:text-slate-500 outline-none resize-none pt-1 disabled:cursor-not-allowed"
           />
 

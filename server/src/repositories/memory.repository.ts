@@ -214,6 +214,29 @@ export async function deleteMemoryById(pointId: string): Promise<void> {
   });
 }
 
+/**
+ * Retrieve a single memory point by its Qdrant ID.
+ */
+export async function getMemoryPointById(
+  pointId: string,
+): Promise<{ id: string; payload: StoredMemoryPayload } | null> {
+  await ensureCollection();
+  const client = getQdrantClient();
+
+  const results = await client.retrieve(COLLECTION_NAME, {
+    ids: [pointId],
+    with_payload: true,
+    with_vector: false,
+  });
+
+  if (!results.length) return null;
+
+  return {
+    id: String(results[0]!.id),
+    payload: results[0]!.payload as unknown as StoredMemoryPayload,
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Stats
 // ---------------------------------------------------------------------------
