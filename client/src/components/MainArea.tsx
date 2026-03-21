@@ -167,7 +167,6 @@ const MainArea = () => {
                 type="button"
                 onClick={() => {
                   setActiveTab(tab.id);
-                  resetFeedback();
                   setSelectedFile(null);
                 }}
                 className={`flex-1 flex items-center justify-center gap-2 py-3.5 text-sm font-semibold transition-colors duration-150 focus:outline-none cursor-pointer
@@ -342,42 +341,7 @@ const MainArea = () => {
               </form>
             )}
 
-            {/* Feedback */}
-            {error && (
-              <div className="flex items-center gap-2 mt-4 px-4 py-3 rounded-xl bg-red-950/50 border border-red-800 text-red-400 text-sm">
-                <svg
-                  width="15"
-                  height="15"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <circle cx="12" cy="12" r="10" />
-                  <path strokeLinecap="round" d="M12 8v4m0 4h.01" />
-                </svg>
-                {error}
-              </div>
-            )}
-            {success && (
-              <div className="flex items-center gap-2 mt-4 px-4 py-3 rounded-xl bg-emerald-950/50 border border-emerald-800 text-emerald-400 text-sm">
-                <svg
-                  width="15"
-                  height="15"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
-                {success}
-              </div>
-            )}
+
           </div>
         </div>
 
