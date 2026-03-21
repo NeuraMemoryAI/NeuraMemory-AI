@@ -37,7 +37,7 @@ prod-ps: ## Show production service status
 ##@ Development
 
 dev: ## Start development environment with hot-reload
-	docker compose $(DEV_COMPOSE_FILES) up
+	docker compose $(DEV_COMPOSE_FILES) up --build
 
 dev-build: ## Build development images
 	docker compose $(DEV_COMPOSE_FILES) build
@@ -79,10 +79,10 @@ qdrant-health: ## Check Qdrant health
 ##@ Testing & Quality
 
 test: ## Run API tests (requires running server)
-	cd server && ./test.sh
+	cd server && ./test-routes.sh
 
 test-verbose: ## Run API tests with verbose output
-	cd server && VERBOSE=true ./test.sh
+	cd server && VERBOSE=true ./test-routes.sh
 
 lint-server: ## Run ESLint on server code
 	docker compose $(DEV_COMPOSE_FILES) exec server npm run lint

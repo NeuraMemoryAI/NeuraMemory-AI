@@ -1,8 +1,4 @@
-import rateLimit from 'express-rate-limit';
-
-function keyGenerator(ip: string | undefined): string {
-  return ip?.trim() || 'unknown-client';
-}
+import rateLimit, { type Options } from 'express-rate-limit';
 
 function rateLimitResponse(message: string) {
   return {
@@ -25,30 +21,43 @@ const registerMaxRequests = isDevelopmentLike ? 10_000 : 10;
 const loginWindowMs = 15 * 60 * 1000; // 15 minutes
 const registerWindowMs = 60 * 60 * 1000; // 1 hour
 
-export const loginRateLimiter = rateLimit({
-  windowMs: loginWindowMs,
-  max: loginMaxRequests,
+/**
+ * Shared base options — use the library-default keyGenerator (IP-based with
+ * proper IPv6 normalisation) instead of a custom one to avoid
+ * ERR_ERL_KEY_GEN_IPV6 validation errors in express-rate-limit v8+.
+ */
+const baseOptions: Partial<Options> = {
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => keyGenerator(req.ip),
+  skipSuccessfulRequests: false,
+};
+
+/**
+ * @planned vNext
+ * Enable on auth routes once deployment-specific thresholds are finalized.
+ */
+export const loginRateLimiter = rateLimit({
+  ...baseOptions,
+  windowMs: loginWindowMs,
+  max: loginMaxRequests,
   message: rateLimitResponse(
     isDevelopmentLike
       ? 'Rate limit exceeded in development mode (unexpected).'
       : 'Too many login attempts. Please try again in 15 minutes.',
   ),
-  skipSuccessfulRequests: false,
 });
 
+/**
+ * @planned vNext
+ * Enable on auth routes once deployment-specific thresholds are finalized.
+ */
 export const registerRateLimiter = rateLimit({
+  ...baseOptions,
   windowMs: registerWindowMs,
   max: registerMaxRequests,
-  standardHeaders: true,
-  legacyHeaders: false,
-  keyGenerator: (req) => keyGenerator(req.ip),
   message: rateLimitResponse(
     isDevelopmentLike
       ? 'Rate limit exceeded in development mode (unexpected).'
       : 'Too many registration attempts. Please try again in 1 hour.',
   ),
-  skipSuccessfulRequests: false,
 });
