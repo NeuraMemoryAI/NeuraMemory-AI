@@ -112,9 +112,10 @@ function createMcpServer(userId: string): McpServer {
           if (kind) options.kind = kind;
           memories = await getUserMemories(userId, options);
         }
+        const count = Array.isArray(memories) ? memories.length : memories.points.length;
         return {
           content: [
-            { type: 'text' as const, text: JSON.stringify({ count: memories.length, memories }, null, 2) },
+            { type: 'text' as const, text: JSON.stringify({ count, memories }, null, 2) },
           ],
         };
       } catch (err: unknown) {

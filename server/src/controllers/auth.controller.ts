@@ -125,3 +125,45 @@ export async function generateApiKeyController(
     next(err);
   }
 }
+
+export async function logoutController(
+  _req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    res.clearCookie('authorization', {
+      httpOnly: true,
+      secure: process.env['NODE_ENV'] === 'production',
+      sameSite: 'lax',
+    });
+    res.status(200).json({ success: true, message: 'Logged out successfully' });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function meController(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      throw new AppError(401, 'Unauthorized');
+    }
+    
+    // We can just import and use findUserById from repository
+    const { findUserById } = await import('../repositories/user.repository.js');
+    const user = await findUserById(userId);
+    if (!user) {
+      throw new AppError(404, 'User not found');
+    }
+
+    const safeUser = { ...user };
+    res.status(200).json({ success: true, data: { user: safeUser } });
+  } catch (err) {
+    next(err);
+  }
+}
