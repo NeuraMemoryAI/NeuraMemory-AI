@@ -12,7 +12,7 @@ const router = Router();
 
 router.post('/login', loginRateLimiter, loginController);
 router.post('/register', registerRateLimiter, registerController);
-router.post('/logout', logoutController);
+router.post('/logout', requireAuth, logoutController);
 router.get('/me', requireAuth, meController);
 
 export default router;

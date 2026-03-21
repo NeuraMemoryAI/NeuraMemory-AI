@@ -56,7 +56,7 @@ export async function loginController(
     const { email, password } = result.data;
     const response = await loginService(email, password);
 
-    res.cookie("authorization", response.token, {
+    res.cookie("neura_token", response.token, {
       httpOnly: true,
       secure: process.env['NODE_ENV'] === "production",
       sameSite: "lax",
@@ -87,7 +87,7 @@ export async function registerController(
     const { email, password } = result.data;
     const response = await registerService(email, password);
 
-    res.cookie("authorization", response.token, {
+    res.cookie("neura_token", response.token, {
       httpOnly: true,
       secure: process.env['NODE_ENV'] === "production",
       sameSite: "lax",
@@ -102,7 +102,7 @@ export async function registerController(
 }
 
 export function logoutController(_req: Request, res: Response): void {
-  res.clearCookie("authorization", {
+  res.clearCookie("neura_token", {
     httpOnly: true,
     secure: process.env['NODE_ENV'] === "production",
     sameSite: "lax",

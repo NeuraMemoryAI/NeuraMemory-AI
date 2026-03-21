@@ -132,7 +132,9 @@ export async function registerService(
       email: createdUser.email,
     });
   } catch (err) {
-    logAuthError('register', email, err);
+    if (!(err instanceof AppError)) {
+      logAuthError('register', email, err);
+    }
     throw err;
   }
 }
@@ -169,7 +171,9 @@ export async function loginService(
       email: existingUser.email,
     });
   } catch (err) {
-    logAuthError('login', email, err);
+    if (!(err instanceof AppError)) {
+      logAuthError('login', email, err);
+    }
     throw err;
   }
 }

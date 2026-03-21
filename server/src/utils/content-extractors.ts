@@ -9,6 +9,8 @@ import {
 import { AppError } from './AppError.js';
 import { extractTextWithLocalOcr } from './ocr-local.js';
 
+pdfjs.GlobalWorkerOptions.workerSrc = '';
+
 type FirecrawlScrapeData = {
   markdown?: string | null;
 };
@@ -67,8 +69,14 @@ export async function extractTextFromDocument(
 ): Promise<string> {
   switch (mimetype) {
     case 'text/plain':
-    case 'text/markdown':
-      return buffer.toString('utf-8');
+    case 'text/markdown': {
+      const text = buffer.toString('utf-8');
+      const MAX_PLAIN_TEXT_BYTES = 500_000; // ~500 KB
+      if (Buffer.byteLength(text, 'utf-8') > MAX_PLAIN_TEXT_BYTES) {
+        throw new AppError(413, 'Plain-text file exceeds the 500 KB limit.');
+      }
+      return text;
+    }
 
     case 'application/pdf':
       return extractTextFromPdfBuffer(buffer, filename);
@@ -95,7 +103,8 @@ async function extractTextFromPdfBuffer(
         return text;
       }
     } catch (err) {
-      console.warn('[PDF] pdfjs-dist extraction failed:', err);
+      const msg = err instanceof Error ? err.message : String(err);
+      console.warn('[PDF] pdfjs-dist extraction failed:', msg);
     }
   }
 
@@ -129,7 +138,6 @@ async function extractTextFromPdfBuffer(
 }
 
 async function extractTextWithPdfJs(buffer: Buffer): Promise<string> {
-  pdfjs.GlobalWorkerOptions.workerSrc = '';
   const data = new Uint8Array(buffer);
   const loadingTask = pdfjs.getDocument({ data });
   const document = await loadingTask.promise;
