@@ -17,56 +17,25 @@ type Memory = {
 type KindFilter = '' | 'semantic' | 'bubble';
 type SourceFilter = '' | 'text' | 'link' | 'document';
 
-const SOURCE_BADGE_STYLES: Record<string, string> = {
-  text: 'bg-cyan-900/50 text-cyan-300 border-cyan-700',
-  link: 'bg-blue-900/50 text-blue-300 border-blue-700',
-  document: 'bg-violet-900/50 text-violet-300 border-violet-700',
+const SOURCE_COLORS: Record<string, { dot: string; text: string; bg: string; border: string }> = {
+  text: { dot: 'bg-sky-400', text: 'text-sky-300', bg: 'bg-sky-500/10', border: 'border-sky-500/20' },
+  link: { dot: 'bg-emerald-400', text: 'text-emerald-300', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
+  document: { dot: 'bg-violet-400', text: 'text-violet-300', bg: 'bg-violet-500/10', border: 'border-violet-500/20' },
 };
 
 function SourceBadge({ source }: { source?: string }) {
   if (!source) return null;
-  const styles = SOURCE_BADGE_STYLES[source] ?? 'bg-gray-800 text-gray-400 border-gray-600';
+  const c = SOURCE_COLORS[source] ?? { dot: 'bg-slate-400', text: 'text-slate-300', bg: 'bg-slate-500/10', border: 'border-slate-500/20' };
   return (
-    <span
-      data-testid="source-badge"
-      className={`inline-flex items-center border rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${styles}`}
-    >
-      {source.charAt(0).toUpperCase() + source.slice(1)}
+    <span data-testid="source-badge" className={`inline-flex items-center gap-1.5 ${c.bg} ${c.border} border rounded-full px-2 py-0.5 text-[10px] font-semibold`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${c.dot}`} />
+      <span className={c.text}>{source.charAt(0).toUpperCase() + source.slice(1)}</span>
     </span>
   );
 }
 
-function SourceRef({ source, sourceRef }: { source?: string; sourceRef?: string }) {
-  if (!sourceRef) return null;
-  if (source === 'link') {
-    return (
-      <a
-        href={sourceRef}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-[10px] text-blue-400 hover:text-blue-300 truncate block max-w-full mt-1 underline underline-offset-2"
-        title={sourceRef}
-      >
-        {sourceRef}
-      </a>
-    );
-  }
-  if (source === 'document') {
-    return (
-      <span className="text-[10px] text-violet-400 truncate block max-w-full mt-1" title={sourceRef}>
-        {sourceRef}
-      </span>
-    );
-  }
-  return null;
-}
-
 function MemoryCard({
-  memory,
-  onDelete,
-  onSaveEdit,
-  expanded,
-  onToggleExpand,
+  memory, onDelete, onSaveEdit, expanded, onToggleExpand,
 }: {
   memory: Memory;
   onDelete: (id: string) => void;
@@ -82,133 +51,102 @@ function MemoryCard({
 
   useEffect(() => {
     const el = textRef.current;
-    if (el) {
-      setOverflows(el.scrollHeight > el.clientHeight);
-    }
+    if (el) setOverflows(el.scrollHeight > el.clientHeight);
   }, [memory.text]);
-
-  const handleEdit = () => {
-    setEditText(memory.text);
-    setEditing(true);
-  };
-
-  const handleCancel = () => {
-    setEditing(false);
-    setEditText(memory.text);
-  };
 
   const handleSave = async () => {
     setSaving(true);
-    try {
-      await onSaveEdit(memory.id, editText);
-      setEditing(false);
-    } catch {
-    } finally {
-      setSaving(false);
-    }
+    try { await onSaveEdit(memory.id, editText); setEditing(false); }
+    catch { /* error handled upstream */ }
+    finally { setSaving(false); }
   };
 
   return (
-    <div className="rounded-2xl border border-gray-600 bg-neutral-900/80 p-5 shadow-md flex flex-col min-h-[190px]">
-      <div className="flex items-start justify-between gap-2 mb-3 flex-wrap">
+    <div className="group rounded-2xl p-4 flex flex-col gap-3 transition-all duration-200 hover:border-white/12"
+      style={{ background: 'rgba(13,17,23,0.8)', border: '1px solid rgba(255,255,255,0.07)' }}>
+      {/* Top row */}
+      <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2 flex-wrap">
           <SourceBadge source={memory.source} />
+          <span className="text-[10px] text-slate-600 uppercase tracking-widest">{memory.kind}</span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
           {!editing && (
-            <button
-              className="bg-neutral-700 hover:bg-neutral-600 text-white text-xs font-semibold rounded-md px-3 py-1 transition"
-              type="button"
-              onClick={handleEdit}
-            >
+            <button type="button" onClick={() => { setEditText(memory.text); setEditing(true); }}
+              className="text-[11px] font-medium text-slate-400 hover:text-indigo-300 bg-white/4 hover:bg-indigo-500/10 border border-white/6 hover:border-indigo-500/20 rounded-lg px-2.5 py-1 transition-all cursor-pointer">
               Edit
             </button>
           )}
-          <button
-            className="bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-md px-3 py-1 transition"
-            type="button"
-            onClick={() => onDelete(memory.id)}
-          >
+          <button type="button" onClick={() => onDelete(memory.id)}
+            className="text-[11px] font-medium text-slate-400 hover:text-red-400 bg-white/4 hover:bg-red-500/10 border border-white/6 hover:border-red-500/20 rounded-lg px-2.5 py-1 transition-all cursor-pointer">
             Delete
           </button>
         </div>
       </div>
 
-      <div className="text-[10px] uppercase tracking-widest text-cyan-400 mb-1">{memory.kind}</div>
-
+      {/* Content */}
       {editing ? (
-        <div className="flex flex-col gap-2 flex-1">
+        <div className="flex flex-col gap-2">
           <textarea
-            className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-sm text-white resize-none focus:outline-none focus:ring-2 focus:ring-sky-500 transition"
-            rows={5}
-            value={editText}
-            onChange={(e) => setEditText(e.target.value)}
-            autoFocus
+            className="w-full bg-white/4 border border-white/8 rounded-xl px-3 py-2 text-sm text-white resize-none focus:outline-none focus:border-indigo-500/50 transition"
+            rows={5} value={editText} onChange={(e) => setEditText(e.target.value)} autoFocus
           />
           <div className="flex gap-2">
-            <button
-              type="button"
-              disabled={saving}
-              onClick={handleSave}
-              className="bg-sky-600 hover:bg-sky-500 disabled:opacity-50 text-white text-xs font-semibold rounded-md px-3 py-1 transition flex items-center gap-1"
-            >
-              {saving && (
-                <svg className="animate-spin" width="12" height="12" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-                </svg>
-              )}
+            <button type="button" disabled={saving} onClick={handleSave}
+              className="flex items-center gap-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/20 disabled:opacity-50 text-indigo-300 text-xs font-semibold rounded-lg px-3 py-1.5 transition cursor-pointer">
+              {saving && <svg className="animate-spin" width="11" height="11" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" /></svg>}
               Save
             </button>
-            <button
-              type="button"
-              disabled={saving}
-              onClick={handleCancel}
-              className="bg-neutral-700 hover:bg-neutral-600 disabled:opacity-50 text-white text-xs font-semibold rounded-md px-3 py-1 transition"
-            >
+            <button type="button" disabled={saving} onClick={() => setEditing(false)}
+              className="bg-white/4 hover:bg-white/7 border border-white/7 disabled:opacity-50 text-slate-400 text-xs font-semibold rounded-lg px-3 py-1.5 transition cursor-pointer">
               Cancel
             </button>
           </div>
         </div>
       ) : (
         <>
-          <div
-            className="overflow-hidden transition-all duration-300 ease-in-out"
-            style={{ maxHeight: expanded ? '1000px' : '4.5rem' }}
-          >
-            <div
-              ref={textRef}
-              className={`text-sm leading-6 text-gray-300 ${expanded ? '' : 'line-clamp-3'}`}
-            >
+          <div className="overflow-hidden transition-all duration-300" style={{ maxHeight: expanded ? '1000px' : '4.5rem' }}>
+            <div ref={textRef} className={`text-sm leading-6 text-slate-300 ${expanded ? '' : 'line-clamp-3'}`}>
               {memory.text}
             </div>
           </div>
 
           {overflows && (
-            <button
-              type="button"
-              className="text-xs text-cyan-400 hover:text-cyan-300 mt-1 self-start transition"
-              onClick={() => onToggleExpand(memory.id)}
-            >
-              {expanded ? 'Show less' : 'Show more'}
+            <button type="button" onClick={() => onToggleExpand(memory.id)}
+              className="text-[11px] text-indigo-400 hover:text-indigo-300 self-start transition cursor-pointer">
+              {expanded ? 'Show less ↑' : 'Show more ↓'}
             </button>
           )}
 
-          <SourceRef source={memory.source} sourceRef={memory.sourceRef} />
+          {memory.sourceRef && (
+            memory.source === 'link' ? (
+              <a href={memory.sourceRef} target="_blank" rel="noopener noreferrer"
+                className="text-[10px] text-emerald-400 hover:text-emerald-300 truncate block underline underline-offset-2" title={memory.sourceRef}>
+                {memory.sourceRef}
+              </a>
+            ) : (
+              <span className="text-[10px] text-violet-400 truncate block" title={memory.sourceRef}>{memory.sourceRef}</span>
+            )
+          )}
 
-          <div className="text-[10px] text-gray-600 mt-3">
-            {new Date(memory.createdAt).toLocaleDateString()}
-          </div>
+          <p className="text-[10px] text-slate-700 mt-auto">{new Date(memory.createdAt).toLocaleDateString()}</p>
         </>
       )}
     </div>
   );
 }
 
-function pillClass(active: boolean) {
-  return active
-    ? 'bg-cyan-600 text-white'
-    : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700';
+function FilterPill({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button type="button" onClick={onClick}
+      className={`text-xs font-medium rounded-full px-3 py-1 transition-all duration-150 cursor-pointer border
+        ${active
+          ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30'
+          : 'bg-white/4 text-slate-500 border-white/6 hover:bg-white/7 hover:text-slate-300'
+        }`}>
+      {children}
+    </button>
+  );
 }
 
 const ManageMemories = () => {
@@ -236,107 +174,59 @@ const ManageMemories = () => {
   const [deletingSingle, setDeletingSingle] = useState(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedQuery(searchQuery);
-    }, 300);
+    const timer = setTimeout(() => setDebouncedQuery(searchQuery), 300);
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  const buildUrl = useCallback(
-    (offset: string | null, kind: KindFilter, source: SourceFilter) => {
-      const params = new URLSearchParams();
-      params.set('limit', '20');
-      if (offset) params.set('offset', offset);
-      if (kind) params.set('kind', kind);
-      if (source) params.set('source', source);
-      return `/api/v1/memories?${params.toString()}`;
-    },
-    [],
-  );
+  const buildUrl = useCallback((offset: string | null, kind: KindFilter, source: SourceFilter) => {
+    const params = new URLSearchParams();
+    params.set('limit', '20');
+    if (offset) params.set('offset', offset);
+    if (kind) params.set('kind', kind);
+    if (source) params.set('source', source);
+    return `/api/v1/memories?${params.toString()}`;
+  }, []);
 
-  const fetchMemories = useCallback(
-    async (kind: KindFilter, source: SourceFilter) => {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await api.get<{
-          success: boolean;
-          data: Memory[];
-          nextOffset: string | null;
-          hasMore: boolean;
-        }>(buildUrl(null, kind, source));
-        setMemories(res.data.data ?? []);
-        setNextOffset(res.data.nextOffset ?? null);
-        setHasMore(res.data.hasMore ?? false);
-      } catch {
-        setError('Failed to load memories. Please try again.');
-      } finally {
-        setLoading(false);
-      }
-    },
-    [buildUrl],
-  );
+  const fetchMemories = useCallback(async (kind: KindFilter, source: SourceFilter) => {
+    setLoading(true); setError(null);
+    try {
+      const res = await api.get<{ success: boolean; data: Memory[]; nextOffset: string | null; hasMore: boolean }>(buildUrl(null, kind, source));
+      setMemories(res.data.data ?? []);
+      setNextOffset(res.data.nextOffset ?? null);
+      setHasMore(res.data.hasMore ?? false);
+    } catch { setError('Failed to load memories.'); }
+    finally { setLoading(false); }
+  }, [buildUrl]);
 
   const fetchSearch = useCallback(async (q: string) => {
-    setLoading(true);
-    setError(null);
+    setLoading(true); setError(null);
     try {
-      const res = await api.get<{ success: boolean; data: Memory[] }>(
-        `/api/v1/memories/search?q=${encodeURIComponent(q)}`,
-      );
+      const res = await api.get<{ success: boolean; data: Memory[] }>(`/api/v1/memories/search?q=${encodeURIComponent(q)}`);
       setMemories(res.data.data ?? []);
-      setNextOffset(null);
-      setHasMore(false);
-    } catch {
-      setError('Search failed. Please try again.');
-    } finally {
-      setLoading(false);
-    }
+      setNextOffset(null); setHasMore(false);
+    } catch { setError('Search failed.'); }
+    finally { setLoading(false); }
   }, []);
 
   useEffect(() => {
-    if (debouncedQuery.trim()) {
-      fetchSearch(debouncedQuery.trim());
-    } else {
-      fetchMemories(kindFilter, sourceFilter);
-    }
+    if (debouncedQuery.trim()) fetchSearch(debouncedQuery.trim());
+    else fetchMemories(kindFilter, sourceFilter);
   }, [debouncedQuery, fetchSearch, fetchMemories, kindFilter, sourceFilter]);
 
   const handleLoadMore = async () => {
     if (!nextOffset || loadingMore) return;
     setLoadingMore(true);
     try {
-      const res = await api.get<{
-        success: boolean;
-        data: Memory[];
-        nextOffset: string | null;
-        hasMore: boolean;
-      }>(buildUrl(nextOffset, kindFilter, sourceFilter));
+      const res = await api.get<{ success: boolean; data: Memory[]; nextOffset: string | null; hasMore: boolean }>(buildUrl(nextOffset, kindFilter, sourceFilter));
       setMemories((prev) => [...prev, ...(res.data.data ?? [])]);
       setNextOffset(res.data.nextOffset ?? null);
       setHasMore(res.data.hasMore ?? false);
-    } catch {
-      setError('Failed to load more memories. Please try again.');
-    } finally {
-      setLoadingMore(false);
-    }
+    } catch { setError('Failed to load more.'); }
+    finally { setLoadingMore(false); }
   };
 
-  const handleKindFilter = (value: KindFilter) => {
-    setKindFilter(value);
-    setNextOffset(null);
-    setMemories([]);
-  };
-
-  const handleSourceFilter = (value: SourceFilter) => {
-    setSourceFilter(value);
-    setNextOffset(null);
-    setMemories([]);
-  };
-
-  const handleDelete = (id: string) => {
-    setDeleteTargetId(id);
-  };
+  const handleKindFilter = (value: KindFilter) => { setKindFilter(value); setNextOffset(null); setMemories([]); };
+  const handleSourceFilter = (value: SourceFilter) => { setSourceFilter(value); setNextOffset(null); setMemories([]); };
 
   const handleConfirmSingleDelete = async () => {
     if (!deleteTargetId) return;
@@ -346,43 +236,30 @@ const ManageMemories = () => {
       setMemories((prev) => prev.filter((m) => m.id !== deleteTargetId));
       showToast('success', 'Memory deleted.');
     } catch (err) {
-      const msg = err instanceof AxiosError ? (err.response?.data?.message ?? 'Failed to delete memory.') : 'Failed to delete memory.';
-      showToast('error', msg);
-    } finally {
-      setDeletingSingle(false);
-      setDeleteTargetId(null);
-    }
+      showToast('error', err instanceof AxiosError ? (err.response?.data?.message ?? 'Failed to delete.') : 'Failed to delete.');
+    } finally { setDeletingSingle(false); setDeleteTargetId(null); }
   };
 
   const handleConfirmDeleteAll = async () => {
     setDeletingAll(true);
     try {
       await api.delete('/api/v1/memories');
-      setMemories([]);
-      setNextOffset(null);
-      setHasMore(false);
+      setMemories([]); setNextOffset(null); setHasMore(false);
       showToast('success', 'All memories deleted.');
     } catch (err) {
-      const msg = err instanceof AxiosError ? (err.response?.data?.message ?? 'Failed to delete all memories.') : 'Failed to delete all memories.';
-      showToast('error', msg);
-    } finally {
-      setDeletingAll(false);
-      setShowDeleteAllModal(false);
-    }
+      showToast('error', err instanceof AxiosError ? (err.response?.data?.message ?? 'Failed to delete all.') : 'Failed to delete all.');
+    } finally { setDeletingAll(false); setShowDeleteAllModal(false); }
   };
 
   const handleSaveEdit = async (id: string, newText: string) => {
     const original = memories.find((m) => m.id === id);
     if (!original) return;
-
     setMemories((prev) => prev.map((m) => (m.id === id ? { ...m, text: newText } : m)));
-
     try {
       await api.patch(`/api/v1/memories/${id}`, { text: newText });
     } catch (err) {
       setMemories((prev) => prev.map((m) => (m.id === id ? { ...m, text: original.text } : m)));
-      const msg = err instanceof AxiosError ? (err.response?.data?.message ?? 'Failed to update memory.') : 'Failed to update memory.';
-      showToast('error', msg);
+      showToast('error', err instanceof AxiosError ? (err.response?.data?.message ?? 'Failed to update.') : 'Failed to update.');
       throw err;
     }
   };
@@ -390,11 +267,7 @@ const ManageMemories = () => {
   const handleToggleExpand = (id: string) => {
     setExpandedIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
+      if (next.has(id)) next.delete(id); else next.add(id);
       return next;
     });
   };
@@ -402,155 +275,134 @@ const ManageMemories = () => {
   const isSearchMode = debouncedQuery.trim() !== '';
 
   return (
-    <main className="flex flex-col items-center justify-center min-h-screen bg-black p-3 sm:p-4 md:p-8">
-      <div className="w-full max-w-7xl min-h-[70vh] bg-neutral-900 rounded-2xl sm:rounded-3xl shadow-2xl border border-gray-800 p-4 sm:p-6 md:p-10 flex flex-col gap-6 mx-auto">
-        <div className="w-full rounded-2xl border border-gray-700 bg-linear-to-r from-neutral-900 via-neutral-900 to-slate-900/60 p-4 sm:p-5 md:p-6">
-          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-            <div>
-              <p className="text-[11px] uppercase tracking-[0.16em] text-cyan-300 mb-2">
-                Memory Workspace
-              </p>
-              <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white">
-                Manage Memories
-              </h1>
-              <p className="text-gray-300 text-sm md:text-base mt-2 max-w-2xl">
-                Organize your saved notes, revisit important context, and clean
-                up entries you no longer need.
-              </p>
-            </div>
-            <div className="flex items-center gap-3 flex-wrap">
-              <button
-                className="bg-red-700 hover:bg-red-600 text-white text-sm font-semibold rounded-lg px-4 py-2 h-fit transition shadow"
-                onClick={() => setShowDeleteAllModal(true)}
-              >
-                Delete All
-              </button>
-              <button
-                className="bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-semibold rounded-lg px-4 py-2 h-fit transition shadow"
-                onClick={() => navigate('/')}
-              >
-                + New Memory
-              </button>
-            </div>
+    <main className="relative min-h-full px-4 py-8 sm:px-6 md:px-10 overflow-hidden" style={{ background: '#080b14' }}>
+      <div className="dot-grid absolute inset-0 pointer-events-none opacity-30" />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[300px] bg-indigo-600/6 rounded-full blur-[120px] pointer-events-none" />
+
+      <div className="relative z-10 max-w-7xl mx-auto flex flex-col gap-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <p className="text-[10px] font-semibold text-indigo-400 uppercase tracking-widest mb-1.5">Memory Workspace</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">Manage Memories</h1>
+            <p className="text-sm text-slate-500 mt-1">Organize, search, and clean up your saved knowledge.</p>
+          </div>
+          <div className="flex items-center gap-2.5">
+            <button onClick={() => setShowDeleteAllModal(true)}
+              className="text-xs font-semibold text-red-400 bg-red-500/10 hover:bg-red-500/15 border border-red-500/20 rounded-xl px-4 py-2 transition cursor-pointer">
+              Delete All
+            </button>
+            <button onClick={() => navigate('/')}
+              className="flex items-center gap-1.5 text-xs font-semibold text-indigo-300 bg-indigo-500/15 hover:bg-indigo-500/20 border border-indigo-500/20 rounded-xl px-4 py-2 transition cursor-pointer">
+              <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+              New Memory
+            </button>
           </div>
         </div>
 
-        <div className="w-full rounded-2xl border border-gray-700 bg-[#232b36] p-4 md:p-6">
-          <div className="relative mb-4">
-            <svg
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500 pointer-events-none"
-              width="16"
-              height="16"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <circle cx="11" cy="11" r="8" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35" />
+        {/* Search + Filters */}
+        <div className="rounded-2xl p-4 sm:p-5 flex flex-col gap-4" style={{ background: 'rgba(13,17,23,0.8)', border: '1px solid rgba(255,255,255,0.07)' }}>
+          <div className="relative">
+            <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-600 pointer-events-none" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <circle cx="11" cy="11" r="8" /><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35" />
             </svg>
             <input
-              type="text"
-              placeholder="Search memories…"
-              value={searchQuery}
+              type="text" placeholder="Search memories…" value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-neutral-800 border border-neutral-700 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-sky-500 transition"
+              className="w-full bg-white/4 border border-white/7 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-indigo-500/40 transition"
             />
           </div>
 
           {!isSearchMode && (
-            <div className="flex flex-col sm:flex-row gap-4 mb-5">
+            <div className="flex flex-col sm:flex-row gap-3">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs text-neutral-500 uppercase tracking-wider mr-1">Kind</span>
+                <span className="text-[10px] text-slate-600 uppercase tracking-widest">Kind</span>
                 {(['', 'semantic', 'bubble'] as KindFilter[]).map((val) => (
-                  <button
-                    key={val === '' ? 'all-kind' : val}
-                    type="button"
-                    className={`text-xs font-semibold rounded-full px-3 py-1 transition ${pillClass(kindFilter === val)}`}
-                    onClick={() => handleKindFilter(val)}
-                  >
+                  <FilterPill key={val || 'all-kind'} active={kindFilter === val} onClick={() => handleKindFilter(val)}>
                     {val === '' ? 'All' : val.charAt(0).toUpperCase() + val.slice(1)}
-                  </button>
+                  </FilterPill>
                 ))}
               </div>
-
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs text-neutral-500 uppercase tracking-wider mr-1">Source</span>
+                <span className="text-[10px] text-slate-600 uppercase tracking-widest">Source</span>
                 {(['', 'text', 'link', 'document'] as SourceFilter[]).map((val) => (
-                  <button
-                    key={val === '' ? 'all-source' : val}
-                    type="button"
-                    className={`text-xs font-semibold rounded-full px-3 py-1 transition ${pillClass(sourceFilter === val)}`}
-                    onClick={() => handleSourceFilter(val)}
-                  >
+                  <FilterPill key={val || 'all-source'} active={sourceFilter === val} onClick={() => handleSourceFilter(val)}>
                     {val === '' ? 'All' : val.charAt(0).toUpperCase() + val.slice(1)}
-                  </button>
+                  </FilterPill>
                 ))}
               </div>
-            </div>
-          )}
-
-          {loading && (
-            <p className="text-gray-400 text-sm text-center py-8">
-              Loading memories...
-            </p>
-          )}
-          {error && (
-            <p className="text-red-400 text-sm text-center py-8">{error}</p>
-          )}
-          {!loading && !error && memories.length === 0 && (
-            <p className="text-gray-500 text-sm text-center py-8">
-              {isSearchMode ? 'No results found.' : 'No memories found.'}
-            </p>
-          )}
-          {!loading && !error && memories.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {memories.map((memory) => (
-                <MemoryCard
-                  key={memory.id}
-                  memory={memory}
-                  onDelete={handleDelete}
-                  onSaveEdit={handleSaveEdit}
-                  expanded={expandedIds.has(memory.id)}
-                  onToggleExpand={handleToggleExpand}
-                />
-              ))}
-            </div>
-          )}
-
-          {!isSearchMode && hasMore && (
-            <div className="flex justify-center mt-6">
-              <button
-                type="button"
-                disabled={loadingMore}
-                onClick={handleLoadMore}
-                className="bg-neutral-800 hover:bg-neutral-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg px-6 py-2 transition"
-              >
-                {loadingMore ? 'Loading...' : 'Load more'}
-              </button>
             </div>
           )}
         </div>
+
+        {/* Grid */}
+        {loading && (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="rounded-2xl p-4 h-40 animate-pulse" style={{ background: 'rgba(13,17,23,0.8)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                <div className="h-3 bg-white/5 rounded w-1/3 mb-3" />
+                <div className="h-3 bg-white/5 rounded w-full mb-2" />
+                <div className="h-3 bg-white/5 rounded w-4/5 mb-2" />
+                <div className="h-3 bg-white/5 rounded w-2/3" />
+              </div>
+            ))}
+          </div>
+        )}
+
+        {error && (
+          <div className="flex items-center justify-center py-16">
+            <p className="text-sm text-red-400">{error}</p>
+          </div>
+        )}
+
+        {!loading && !error && memories.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-20 gap-3">
+            <div className="w-12 h-12 rounded-2xl bg-white/4 flex items-center justify-center">
+              <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5" className="text-slate-600">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18" />
+              </svg>
+            </div>
+            <p className="text-sm text-slate-500">{isSearchMode ? 'No results found.' : 'No memories yet.'}</p>
+          </div>
+        )}
+
+        {!loading && !error && memories.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {memories.map((memory) => (
+              <MemoryCard
+                key={memory.id} memory={memory}
+                onDelete={(id) => setDeleteTargetId(id)}
+                onSaveEdit={handleSaveEdit}
+                expanded={expandedIds.has(memory.id)}
+                onToggleExpand={handleToggleExpand}
+              />
+            ))}
+          </div>
+        )}
+
+        {!isSearchMode && hasMore && (
+          <div className="flex justify-center mt-2">
+            <button type="button" disabled={loadingMore} onClick={handleLoadMore}
+              className="text-sm font-medium text-slate-400 hover:text-white bg-white/4 hover:bg-white/7 border border-white/7 rounded-xl px-6 py-2.5 transition disabled:opacity-50 cursor-pointer">
+              {loadingMore ? 'Loading…' : 'Load more'}
+            </button>
+          </div>
+        )}
       </div>
 
       <ConfirmModal
-        open={showDeleteAllModal}
-        title="Delete All Memories"
-        description="This will permanently delete all your memories. This action cannot be undone."
-        confirmLabel="Delete All"
-        loading={deletingAll}
-        onConfirm={handleConfirmDeleteAll}
-        onCancel={() => setShowDeleteAllModal(false)}
+        open={showDeleteAllModal} title="Delete All Memories"
+        description="This will permanently delete all your memories. This cannot be undone."
+        confirmLabel="Delete All" loading={deletingAll}
+        onConfirm={handleConfirmDeleteAll} onCancel={() => setShowDeleteAllModal(false)}
       />
-
       <ConfirmModal
-        open={deleteTargetId !== null}
-        title="Delete Memory"
+        open={deleteTargetId !== null} title="Delete Memory"
         description="Delete this memory? This cannot be undone."
-        confirmLabel="Delete"
-        loading={deletingSingle}
-        onConfirm={handleConfirmSingleDelete}
-        onCancel={() => setDeleteTargetId(null)}
+        confirmLabel="Delete" loading={deletingSingle}
+        onConfirm={handleConfirmSingleDelete} onCancel={() => setDeleteTargetId(null)}
       />
     </main>
   );
