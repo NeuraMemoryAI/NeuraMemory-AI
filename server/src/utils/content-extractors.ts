@@ -1,11 +1,24 @@
-import FirecrawlApp from '@mendable/firecrawl-js';
 import { AppError } from './AppError.js';
+import { getFirecrawlClient } from '../lib/firecrawl.js';
+import { extractTextFromPdfBuffer } from './pdf-extractor.js';
+import { extractTextFromDocxBuffer } from './docx-extractor.js';
 
+/**
+ * @module content-extractors
+ * Thin orchestrator for extracting plain text from URLs and uploaded documents.
+ * Delegates to specialised extractors for each format.
+ */
+
+/**
+ * Fetches and extracts markdown text from a URL using Firecrawl.
+ *
+ * @param url - The URL to scrape
+ * @returns Extracted markdown text (may be empty string if page has no content)
+ * @throws {AppError} 422 if Firecrawl reports a failure or the fetch throws
+ */
 export async function extractTextFromUrl(url: string): Promise<string> {
   try {
-    const firecrawl = new FirecrawlApp({
-      apiKey: process.env['FIRECRAWL_API_KEY'] || '',
-    });
+    const firecrawl = getFirecrawlClient();
 
     const response = (await firecrawl.scrape(url, {
       formats: ['markdown'],
@@ -26,10 +39,6 @@ export async function extractTextFromUrl(url: string): Promise<string> {
     const markdown =
       response.markdown || (response.data && response.data.markdown) || '';
 
-    if (!markdown) {
-      return '';
-    }
-
     return markdown;
   } catch (err) {
     if (err instanceof AppError) throw err;
@@ -40,9 +49,20 @@ export async function extractTextFromUrl(url: string): Promise<string> {
   }
 }
 
+/**
+ * Extracts plain text from an uploaded document buffer.
+ * Delegates to the appropriate extractor based on MIME type.
+ *
+ * @param buffer - The raw file buffer
+ * @param mimetype - The MIME type of the document
+ * @returns Extracted plain text
+ * @throws {AppError} 415 if the MIME type is unsupported
+ * @throws {AppError} 422 if text extraction fails for the given format
+ */
 export async function extractTextFromDocument(
   buffer: Buffer,
   mimetype: string,
+  filename?: string,
 ): Promise<string> {
   switch (mimetype) {
     case 'text/plain':
@@ -50,7 +70,7 @@ export async function extractTextFromDocument(
       return buffer.toString('utf-8');
 
     case 'application/pdf':
-      return extractTextFromPdfBuffer(buffer);
+      return await extractTextFromPdfBuffer(buffer, filename);
 
     case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
       return extractTextFromDocxBuffer(buffer);
@@ -61,85 +81,4 @@ export async function extractTextFromDocument(
         `Unsupported document type: ${mimetype}. Supported types: PDF, DOCX, TXT, MD.`,
       );
   }
-}
-
-function extractTextFromPdfBuffer(buffer: Buffer): string {
-  const raw = buffer.toString('latin1');
-
-  const textBlocks: string[] = [];
-  const btEtRegex = /BT\s([\s\S]*?)ET/g;
-  let blockMatch: RegExpExecArray | null;
-
-  while ((blockMatch = btEtRegex.exec(raw)) !== null) {
-    const block = blockMatch[1];
-    if (!block) continue;
-
-    const stringRegex = /\(([^)]*)\)/g;
-    let strMatch: RegExpExecArray | null;
-
-    while ((strMatch = stringRegex.exec(block)) !== null) {
-      const decoded = strMatch[1];
-      if (decoded) {
-        textBlocks.push(decoded);
-      }
-    }
-  }
-
-  const text = textBlocks.join(' ').trim();
-
-  if (!text) {
-    throw new AppError(
-      422,
-      'Could not extract text from the PDF. The file may be scanned/image‑based or use compressed text streams. Please provide a text‑based PDF.',
-    );
-  }
-
-  return text;
-}
-
-function extractTextFromDocxBuffer(buffer: Buffer): string {
-  const marker = 'word/document.xml';
-  const idx = buffer.indexOf(marker);
-
-  if (idx === -1) {
-    throw new AppError(
-      422,
-      'The uploaded DOCX file appears to be malformed — could not locate word/document.xml.',
-    );
-  }
-
-  const asString = buffer.toString('utf-8');
-
-  const xmlStart = asString.indexOf('<?xml', idx);
-  if (xmlStart === -1) {
-    throw new AppError(
-      422,
-      'Could not parse the DOCX file — no XML content found.',
-    );
-  }
-
-  const nextPk = asString.indexOf('PK', xmlStart + 10);
-  const xmlContent =
-    nextPk === -1 ? asString.slice(xmlStart) : asString.slice(xmlStart, nextPk);
-
-  const text = xmlContent
-    .replace(/<w:p[^>]*>/g, '\n')
-    .replace(/<[^>]+>/g, '')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/[ \t]+/g, ' ')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
-
-  if (!text) {
-    throw new AppError(
-      422,
-      'Could not extract text from the DOCX file. The document may be empty.',
-    );
-  }
-
-  return text;
 }

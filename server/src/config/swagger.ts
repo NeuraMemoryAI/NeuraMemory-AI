@@ -83,11 +83,25 @@ const swaggerSpec: JsonObject = {
         required: ['email', 'password'],
       },
 
-      AuthResponse: {
+      RegisterResponse: {
         type: 'object',
         properties: {
           success: { type: 'boolean', example: true },
-          message: { type: 'string', example: 'Login successful.' },
+          user: {
+            type: 'object',
+            properties: {
+              id: { type: 'string', example: '665f1a2b3c4d5e6f7a8b9c0d' },
+              email: { type: 'string', example: 'user@example.com' },
+            },
+          },
+        },
+        required: ['success', 'user'],
+      },
+
+      LoginResponse: {
+        type: 'object',
+        properties: {
+          success: { type: 'boolean', example: true },
           token: {
             type: 'string',
             example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
@@ -100,17 +114,22 @@ const swaggerSpec: JsonObject = {
             },
           },
         },
-        required: ['success', 'message'],
+        required: ['success', 'token', 'user'],
       },
 
       ApiKeyResponse: {
         type: 'object',
         properties: {
           success: { type: 'boolean', example: true },
-          message: { type: 'string', example: 'API key generated successfully.' },
-          apiKey: { type: 'string', example: 'sk_8f7d9a0c1b2e3d4f5g...' },
+          data: {
+            type: 'object',
+            properties: {
+              apiKey: { type: 'string', example: 'nm_8f7d9a0c1b2e3d4f5g...' },
+            },
+            required: ['apiKey'],
+          },
         },
-        required: ['success', 'message', 'apiKey'],
+        required: ['success', 'data'],
       },
 
       Bubble: {
@@ -180,7 +199,7 @@ const swaggerSpec: JsonObject = {
           message: { type: 'string', example: 'Found 5 memories.' },
           data: {
             type: 'array',
-            items: { $ref: '#/components/schemas/StoredMemory' },
+            items: { $ref: '#/components/schemas/MemoryItem' },
           },
         },
         required: ['success', 'message', 'data'],
@@ -333,7 +352,7 @@ const swaggerSpec: JsonObject = {
             description: 'Account created',
             content: {
               'application/json': {
-                schema: { $ref: '#/components/schemas/AuthResponse' },
+                schema: { $ref: '#/components/schemas/RegisterResponse' },
               },
             },
           },
@@ -378,7 +397,7 @@ const swaggerSpec: JsonObject = {
             description: 'Login successful',
             content: {
               'application/json': {
-                schema: { $ref: '#/components/schemas/AuthResponse' },
+                schema: { $ref: '#/components/schemas/LoginResponse' },
               },
             },
           },
@@ -411,7 +430,7 @@ const swaggerSpec: JsonObject = {
           'Generates a newly minted API key for the authenticated user to connect their LLM via the MCP server.',
         security: [{ BearerAuth: [] }],
         responses: {
-          '201': {
+          '200': {
             description: 'API key generated',
             content: {
               'application/json': {
@@ -953,7 +972,7 @@ const swaggerSpec: JsonObject = {
       get: {
         tags: ['Auth'],
         summary: 'Get authenticated user identity',
-        description: 'Returns the minimal identity (id, email) of the currently authenticated user.',
+        description: 'Returns the identity of the currently authenticated user.',
         security: [{ BearerAuth: [] }],
         responses: {
           '200': {
@@ -969,7 +988,9 @@ const swaggerSpec: JsonObject = {
                       properties: {
                         id: { type: 'string', example: '665f1a2b3c4d5e6f7a8b9c0d' },
                         email: { type: 'string', example: 'user@example.com' },
+                        createdAt: { type: 'string', format: 'date-time', example: '2026-01-01T00:00:00.000Z' },
                       },
+                      required: ['id', 'email', 'createdAt'],
                     },
                   },
                 },
@@ -978,6 +999,10 @@ const swaggerSpec: JsonObject = {
           },
           '401': {
             description: 'Missing or invalid JWT',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } },
+          },
+          '404': {
+            description: 'User not found',
             content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } },
           },
         },

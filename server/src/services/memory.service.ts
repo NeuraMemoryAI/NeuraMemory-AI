@@ -1,5 +1,5 @@
 import { extractMemories } from '../utils/extract.js';
-import { generateEmbeddings } from '../utils/embeddings.js';
+import { generateEmbeddings, generateEmbedding } from '../utils/embeddings.js';
 import {
   extractTextFromUrl,
   extractTextFromDocument,
@@ -10,6 +10,9 @@ import {
   deleteMemoriesByUser,
   deleteMemoryById,
   searchMemories,
+  getMemoryStats as repoGetMemoryStats,
+  getMemoryPointById as repoGetMemoryPointById,
+  updateMemoryById as repoUpdateMemoryById,
 } from '../repositories/memory.repository.js';
 import { AppError } from '../utils/AppError.js';
 import type {
@@ -21,6 +24,7 @@ import type {
   MemorySource,
   StoredMemoryPayload,
 } from '../types/memory.types.js';
+import type { MemoryStatsResult } from '../repositories/memory.repository.js';
 
 async function processText(
   rawText: string,
@@ -120,15 +124,16 @@ export async function processLink(input: LinkInput): Promise<MemoryResponse> {
 export async function getUserMemories(
   userId: string,
   options?: { kind?: string; source?: MemorySource; limit?: number; offset?: string | null },
-): Promise<{ points: StoredMemoryPayload[]; nextOffset: string | null }> {
+): Promise<{ points: Array<StoredMemoryPayload & { id: string }>; nextOffset: string | null }> {
   return getMemoriesByUser(userId, options);
 }
 
 export async function semanticSearch(
-  vector: number[],
+  query: string,
   userId: string,
   limit?: number,
 ): Promise<StoredMemoryPayload[]> {
+  const vector = await generateEmbedding(query);
   return searchMemories(vector, userId, limit);
 }
 
@@ -142,4 +147,43 @@ export async function deleteUserMemoryById(
 ): Promise<void> {
   void userId;
   await deleteMemoryById(pointId);
+}
+
+/**
+ * Returns memory statistics for a user (total count, breakdown by kind and source).
+ *
+ * @param userId - The authenticated user's ID
+ * @returns Stats object with total, byKind, and bySource counts
+ */
+export async function getMemoryStats(userId: string): Promise<MemoryStatsResult> {
+  return repoGetMemoryStats(userId);
+}
+
+/**
+ * Retrieves a single memory point by its Qdrant point ID.
+ *
+ * @param pointId - The Qdrant UUID of the memory point
+ * @returns The point with its payload, or `null` if not found
+ */
+export async function getMemoryPointById(
+  pointId: string,
+): Promise<{ id: string; payload: StoredMemoryPayload } | null> {
+  return repoGetMemoryPointById(pointId);
+}
+
+/**
+ * Updates a memory point's text and regenerates its embedding.
+ * The repository signature requires the vector; this service generates it internally.
+ *
+ * @param pointId - The Qdrant UUID of the memory point to update
+ * @param text - The new text content
+ * @param existingPayload - The existing payload to merge with the updated text
+ */
+export async function updateMemoryById(
+  pointId: string,
+  text: string,
+  existingPayload: StoredMemoryPayload,
+): Promise<void> {
+  const vector = await generateEmbedding(text);
+  return repoUpdateMemoryById(pointId, text, vector, existingPayload);
 }

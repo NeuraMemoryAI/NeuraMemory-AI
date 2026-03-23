@@ -1,48 +1,16 @@
-import express from 'express';
-import swaggerUi from 'swagger-ui-express';
-import cors from 'cors';
-import helmet from 'helmet';
 import { env } from './config/env.js';
-import authRouter from './routes/auth.route.js';
-import memoryRouter from './routes/memorie.route.js';
-import chatRouter from './routes/chat.route.js';
-import swaggerSpec from './config/swagger.js';
-import { errorHandler } from './middleware/errorHandler.js';
+import { createApp } from './app.js';
 import { ensureUserIndexes } from './repositories/user.repository.js';
 import { getMongoClient } from './lib/mongodb.js';
-import mcpRouter from './routes/mcp.route.js';
 import { getQdrantClient, closeQdrantClient } from './lib/qdrant.js';
 
-const app = express();
-app.use(helmet());
-app.use(express.json({ limit: '200kb' }));
+/**
+ * @module index
+ * Server entry point. Handles startup, shutdown, and process signal registration.
+ * All Express app configuration lives in `app.ts`.
+ */
 
-const allowedOrigins = env.ALLOWED_ORIGINS.split(',').map((o: string) => o.trim()).filter(Boolean);
-
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error(`CORS: origin ${origin} not allowed`));
-      }
-    },
-    credentials: true,
-  }),
-);
-
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-app.get('/api-docs/spec.json', (_req, res) => {
-  res.json(swaggerSpec);
-});
-
-app.use('/api/v1', authRouter);
-app.use('/api/v1/memories', memoryRouter);
-app.use('/api/v1/chat', chatRouter);
-app.use('/api/v1/mcp', mcpRouter);
-
-app.use(errorHandler);
+const app = createApp();
 
 let server: ReturnType<typeof app.listen> | null = null;
 let isShuttingDown = false;

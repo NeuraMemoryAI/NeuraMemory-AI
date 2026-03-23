@@ -110,7 +110,7 @@ export async function searchMemories(
 export async function getMemoriesByUser(
   userId: string,
   options?: { kind?: string; source?: MemorySource; limit?: number; offset?: string | null },
-): Promise<{ points: StoredMemoryPayload[]; nextOffset: string | null }> {
+): Promise<{ points: Array<StoredMemoryPayload & { id: string }>; nextOffset: string | null }> {
   await ensureCollection();
   const client = getQdrantClient();
 
@@ -134,7 +134,10 @@ export async function getMemoriesByUser(
   });
 
   return {
-    points: results.points.map((p) => p.payload as unknown as StoredMemoryPayload),
+    points: results.points.map((p) => ({
+      ...(p.payload as unknown as StoredMemoryPayload),
+      id: String(p.id),
+    })),
     nextOffset: results.next_page_offset ? String(results.next_page_offset) : null,
   };
 }

@@ -9,9 +9,15 @@ import {
   searchMemoriesController,
   getStats,
   updateMemory,
-} from '../controllers/memories/memorie.controller.js';
+} from '../controllers/memory.controller.js';
 import { documentUpload } from '../middleware/upload.js';
 import { requireAuth } from '../middleware/auth/requireAuth.js';
+
+/**
+ * @module memory.route
+ * Express router for memory CRUD and search endpoints.
+ * All routes require authentication via `requireAuth` middleware.
+ */
 
 const router = Router();
 

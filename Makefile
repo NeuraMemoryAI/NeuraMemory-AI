@@ -135,7 +135,7 @@ clean-all: ## Remove containers, volumes, and images (⚠️  complete reset)
 	echo; \
 	if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
 		docker compose $(COMPOSE_FILES) down -v --rmi all; \
-		docker system prune -f; \
+		docker system prune -f --remove-orphans; \
 	fi
 
 prune: ## Remove unused Docker resources
@@ -192,7 +192,7 @@ endpoints: ## Show service endpoints
 	@echo "\n🌐 Service Endpoints:\n"
 	@echo "  Frontend:     http://localhost:5173"
 	@echo "  API:          http://localhost:3000"
-	@echo "  API Docs:     http://localhost:3000/api/v1"
+	@echo "  API Docs:     http://localhost:3000/api-docs"
 	@echo "  MongoDB:      mongodb://localhost:27017"
 	@echo "  Qdrant:       http://localhost:6333"
 	@echo "  Qdrant UI:    http://localhost:6333/dashboard"

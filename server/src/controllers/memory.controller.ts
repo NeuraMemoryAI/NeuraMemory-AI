@@ -4,7 +4,10 @@ import {
   plainTextSchema,
   linkSchema,
   ALLOWED_DOCUMENT_MIMES,
-} from '../../validations/memory.validation.js';
+  updateMemorySchema,
+  getMemoriesQuerySchema,
+  searchMemoriesQuerySchema,
+} from '../validations/memory.validation.js';
 import {
   processPlainText,
   processDocument,
@@ -12,16 +15,19 @@ import {
   getUserMemories,
   clearUserMemories,
   deleteUserMemoryById,
-} from '../../services/memory.service.js';
-import {
   getMemoryStats,
   getMemoryPointById,
   updateMemoryById,
-} from '../../repositories/memory.repository.js';
-import { generateEmbedding } from '../../utils/embeddings.js';
-import { searchMemories } from '../../repositories/memory.repository.js';
-import { AppError } from '../../utils/AppError.js';
-import type { MemorySource } from '../../types/memory.types.js';
+  semanticSearch,
+} from '../services/memory.service.js';
+import { AppError } from '../utils/AppError.js';
+import type { MemorySource } from '../types/memory.types.js';
+
+/**
+ * @module memory.controller
+ * HTTP request handlers for memory CRUD and search endpoints.
+ * Delegates all business logic to `memory.service.ts`.
+ */
 
 export function clampSearchLimit(n: number): number {
   if (isNaN(n) || n < 1) return 10;
@@ -134,30 +140,25 @@ export async function getMemories(
   try {
     const userId = getAuthUserId(req);
 
-    const kind =
-      typeof req.query['kind'] === 'string' ? req.query['kind'] : undefined;
+    const parseResult = getMemoriesQuerySchema.safeParse(req.query);
+    if (!parseResult.success) {
+      throw new AppError(
+        400,
+        parseResult.error.errors[0]?.message ?? 'Invalid query parameters.',
+      );
+    }
 
-    const sourceRaw = req.query['source'];
-    const source: MemorySource | undefined =
-      typeof sourceRaw === 'string' &&
-      ['text', 'document', 'link'].includes(sourceRaw)
-        ? (sourceRaw as MemorySource)
-        : undefined;
+    const { kind, source, limit, offset } = parseResult.data;
 
-    const limitRaw = req.query['limit'];
-    const limit =
-      typeof limitRaw === 'string' && !isNaN(Number(limitRaw))
-        ? Math.min(Math.max(Number(limitRaw), 1), 500)
-        : 100;
-
-    const offset = typeof req.query['offset'] === 'string' ? req.query['offset'] : null;
-
-    const options: { kind?: string; source?: MemorySource; limit?: number; offset?: string | null } = {
-      limit,
-    };
+    const options: {
+      kind?: string;
+      source?: MemorySource;
+      limit?: number;
+      offset?: string | null;
+    } = { limit };
     if (kind !== undefined) options.kind = kind;
     if (source !== undefined) options.source = source;
-    if (offset !== null) options.offset = offset;
+    if (offset !== undefined) options.offset = offset;
 
     const { points, nextOffset } = await getUserMemories(userId, options);
 
@@ -219,14 +220,17 @@ export async function searchMemoriesController(
 ): Promise<void> {
   try {
     const userId = getAuthUserId(req);
-    const q = typeof req.query['q'] === 'string' ? req.query['q'].trim() : '';
-    if (!q) throw new AppError(400, 'Query parameter "q" is required and must not be empty.');
 
-    const limitRaw = typeof req.query['limit'] === 'string' ? Number(req.query['limit']) : NaN;
-    const limit = clampSearchLimit(limitRaw);
+    const parseResult = searchMemoriesQuerySchema.safeParse(req.query);
+    if (!parseResult.success) {
+      throw new AppError(
+        400,
+        parseResult.error.errors[0]?.message ?? 'Invalid query parameters.',
+      );
+    }
 
-    const vector = await generateEmbedding(q);
-    const results = await searchMemories(vector, userId, limit);
+    const { q, limit } = parseResult.data;
+    const results = await semanticSearch(q, userId, limit);
 
     res.status(200).json({
       success: true,
@@ -259,19 +263,26 @@ export async function updateMemory(
 ): Promise<void> {
   try {
     const userId = getAuthUserId(req);
-    const pointId = Array.isArray(req.params['id']) ? req.params['id'][0] : req.params['id'];
+    const pointId = Array.isArray(req.params['id'])
+      ? req.params['id'][0]
+      : req.params['id'];
     if (!pointId) throw new AppError(400, 'Memory ID is required.');
 
-    const text = typeof req.body?.text === 'string' ? req.body.text.trim() : '';
-    if (!text) throw new AppError(400, 'Text is required.');
-    if (text.length > 100_000) throw new AppError(400, 'Text must not exceed 100,000 characters.');
+    const parseResult = updateMemorySchema.safeParse(req.body);
+    if (!parseResult.success) {
+      throw new AppError(
+        400,
+        parseResult.error.errors[0]?.message ?? 'Invalid input.',
+      );
+    }
+
+    const { text } = parseResult.data;
 
     const existing = await getMemoryPointById(pointId);
     if (!existing) throw new AppError(404, 'Memory not found.');
     if (existing.payload.userId !== userId) throw new AppError(403, 'Forbidden.');
 
-    const vector = await generateEmbedding(text);
-    await updateMemoryById(pointId, text, vector, existing.payload);
+    await updateMemoryById(pointId, text, existing.payload);
 
     res.status(200).json({ success: true, message: 'Memory updated.' });
   } catch (err) {

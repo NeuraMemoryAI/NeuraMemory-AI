@@ -1,13 +1,16 @@
 import bcrypt from 'bcryptjs';
 import jwt, { SignOptions } from 'jsonwebtoken';
 import crypto from 'crypto';
+import { WithId } from 'mongodb';
 import { env } from '../config/env.js';
 import {
   createUser,
   findUserByEmail,
+  findUserById,
+  findUserByApiKey,
   updateUserApiKey,
 } from '../repositories/user.repository.js';
-import { AuthPayload, AuthResponse } from '../types/auth.types.js';
+import { AuthPayload, AuthResponse, IUser } from '../types/auth.types.js';
 import { AppError } from '../utils/AppError.js';
 
 const SALT_ROUNDS = 12;
@@ -146,4 +149,26 @@ export async function generateApiService(userId: string): Promise<{ apiKey: stri
   await updateUserApiKey(userId, apiKey);
 
   return { apiKey };
+}
+
+/**
+ * Retrieves a user by their MongoDB ObjectId string.
+ *
+ * @param userId - The user's MongoDB ObjectId as a string
+ * @returns The user document, or `null` if not found
+ * @throws {AppError} 500 if the database query fails unexpectedly
+ */
+export async function getUserById(userId: string): Promise<WithId<IUser> | null> {
+  return findUserById(userId);
+}
+
+/**
+ * Retrieves a user by their API key.
+ *
+ * @param apiKey - The API key to look up
+ * @returns The user document, or `null` if no user has this key
+ * @throws {AppError} 500 if the database query fails unexpectedly
+ */
+export async function getUserByApiKey(apiKey: string): Promise<WithId<IUser> | null> {
+  return findUserByApiKey(apiKey);
 }

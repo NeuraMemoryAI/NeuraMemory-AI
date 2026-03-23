@@ -1,5 +1,17 @@
 import rateLimit, { type Options } from 'express-rate-limit';
 
+/**
+ * @module rateLimit
+ * Express rate limiter middleware for authentication endpoints.
+ * Uses named constants for all window durations and request limits.
+ */
+
+const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+const REGISTER_WINDOW_MS = 60 * 60 * 1000;
+const LOGIN_MAX_REQUESTS_PROD = 5;
+const REGISTER_MAX_REQUESTS_PROD = 10;
+const MAX_REQUESTS_DEV = 10_000;
+
 function rateLimitResponse(message: string) {
   return {
     success: false,
@@ -10,12 +22,6 @@ function rateLimitResponse(message: string) {
 const nodeEnv = process.env['NODE_ENV'];
 const isDevelopmentLike = nodeEnv === 'development' || nodeEnv === 'test';
 
-const loginMaxRequests = isDevelopmentLike ? 10_000 : 5;
-const registerMaxRequests = isDevelopmentLike ? 10_000 : 10;
-
-const loginWindowMs = 15 * 60 * 1000;
-const registerWindowMs = 60 * 60 * 1000;
-
 const baseOptions: Partial<Options> = {
   standardHeaders: true,
   legacyHeaders: false,
@@ -24,8 +30,8 @@ const baseOptions: Partial<Options> = {
 
 export const loginRateLimiter = rateLimit({
   ...baseOptions,
-  windowMs: loginWindowMs,
-  max: loginMaxRequests,
+  windowMs: LOGIN_WINDOW_MS,
+  max: isDevelopmentLike ? MAX_REQUESTS_DEV : LOGIN_MAX_REQUESTS_PROD,
   message: rateLimitResponse(
     isDevelopmentLike
       ? 'Rate limit exceeded in development mode (unexpected).'
@@ -35,8 +41,8 @@ export const loginRateLimiter = rateLimit({
 
 export const registerRateLimiter = rateLimit({
   ...baseOptions,
-  windowMs: registerWindowMs,
-  max: registerMaxRequests,
+  windowMs: REGISTER_WINDOW_MS,
+  max: isDevelopmentLike ? MAX_REQUESTS_DEV : REGISTER_MAX_REQUESTS_PROD,
   message: rateLimitResponse(
     isDevelopmentLike
       ? 'Rate limit exceeded in development mode (unexpected).'

@@ -1,48 +1,20 @@
 import { NextFunction, Request, Response } from 'express';
-import { z } from 'zod';
 import {
   loginService,
   registerService,
   generateApiService,
+  getUserById,
 } from '../services/auth.service.js';
-import { findUserById } from '../repositories/user.repository.js';
+import { loginSchema, registerSchema } from '../validations/auth.validation.js';
 import { AppError } from '../utils/AppError.js';
 
+/**
+ * @module auth.controller
+ * HTTP request handlers for authentication endpoints.
+ * Delegates all business logic to `auth.service.ts`.
+ */
+
 const COOKIE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
-
-const emailSchema = z
-  .string({
-    required_error: 'Email is required.',
-    invalid_type_error: 'Email must be a string.',
-  })
-  .trim()
-  .toLowerCase()
-  .email('Please provide a valid email address.');
-
-const loginSchema = z.object({
-  email: emailSchema,
-  password: z
-    .string({
-      required_error: 'Password is required.',
-      invalid_type_error: 'Password must be a string.',
-    })
-    .trim()
-    .min(1, 'Password is required.'),
-});
-
-const registerSchema = z.object({
-  email: emailSchema,
-  password: z
-    .string({
-      required_error: 'Password is required.',
-      invalid_type_error: 'Password must be a string.',
-    })
-    .trim()
-    .min(1, 'Password is required.')
-    .min(8, 'Password must be at least 8 characters.')
-    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter.')
-    .regex(/[0-9]/, 'Password must contain at least one number.'),
-});
 
 export async function loginController(
   req: Request,
@@ -91,10 +63,10 @@ export async function registerController(
     const { email, password } = result.data;
     const response = await registerService(email, password);
 
-    res.cookie("authorization", response.token, {
+    res.cookie('authorization', response.token, {
       httpOnly: true,
-      secure: process.env['NODE_ENV'] === "production",
-      sameSite: "lax",
+      secure: process.env['NODE_ENV'] === 'production',
+      sameSite: 'lax',
       maxAge: COOKIE_MAX_AGE_MS,
     });
 
@@ -154,14 +126,20 @@ export async function meController(
     if (!userId) {
       throw new AppError(401, 'Unauthorized');
     }
-    
-    const user = await findUserById(userId);
+
+    const user = await getUserById(userId);
     if (!user) {
-      throw new AppError(404, 'User not found');
+      throw new AppError(404, 'User not found.');
     }
 
-    const safeUser = { ...user };
-    res.status(200).json({ success: true, data: { user: safeUser } });
+    res.status(200).json({
+      success: true,
+      data: {
+        id: user._id.toString(),
+        email: user.email,
+        createdAt: user.createdAt,
+      },
+    });
   } catch (err) {
     next(err);
   }
@@ -176,7 +154,7 @@ export async function profileController(
     const userId = req.user?.userId;
     if (!userId) throw new AppError(401, 'Authentication required.');
 
-    const user = await findUserById(userId);
+    const user = await getUserById(userId);
     if (!user) throw new AppError(404, 'User not found.');
 
     res.status(200).json({

@@ -14,7 +14,7 @@ const router = Router();
 
 router.post('/login', loginRateLimiter, loginController);
 router.post('/register', registerRateLimiter, registerController);
-router.post('/logout', logoutController);
+router.post('/logout', requireAuth, logoutController);
 router.get('/me', requireAuth, meController);
 router.get('/profile', requireAuth, profileController);
 router.post('/api-key', requireAuth, generateApiKeyController);

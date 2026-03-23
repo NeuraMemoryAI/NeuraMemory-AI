@@ -40,3 +40,32 @@ export const ALLOWED_DOCUMENT_MIMES = [
 ] as const;
 
 export const MAX_DOCUMENT_SIZE = 10 * 1024 * 1024;
+
+export const updateMemorySchema = z.object({
+  text: z
+    .string({
+      required_error: 'Text is required.',
+      invalid_type_error: 'Text must be a string.',
+    })
+    .trim()
+    .min(1, 'Text is required.')
+    .max(100_000, 'Text must not exceed 100,000 characters.'),
+});
+
+export const getMemoriesQuerySchema = z.object({
+  kind: z.string().optional(),
+  source: z.enum(['text', 'document', 'link']).optional(),
+  limit: z.coerce.number().min(1).max(500).default(100),
+  offset: z.string().optional(),
+});
+
+export const searchMemoriesQuerySchema = z.object({
+  q: z
+    .string({
+      required_error: 'Query parameter "q" is required.',
+      invalid_type_error: 'Query parameter "q" must be a string.',
+    })
+    .trim()
+    .min(1, 'Query parameter "q" is required and must not be empty.'),
+  limit: z.coerce.number().min(1).max(50).default(10),
+});
