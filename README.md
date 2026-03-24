@@ -9,9 +9,9 @@ NeuraMemory AI is an intelligent system designed to augment human memory and kno
 - **Secure Authentication:** Includes login and signup functionality for safe user access.
 - **Multi-Modal Interaction:** Users can interact via text, links, files, and documents.
 - **Memory Management:**
-	- All chats are stored as memories.
-	- Memories are displayed as cards on the **Manage Memory** page.
-	- Users can **add, update, or delete memories** easily.
+  - All chats are stored as memories.
+  - Memories are displayed as cards on the **Manage Memory** page.
+  - Users can **add, update, or delete memories** easily.
 - **Conversational Memory:** Talk to your stored memories anytime.
 - **Central AI Hub:** Acts as a unified interface connecting multiple AI tools and services.
 
@@ -88,9 +88,9 @@ Endpoints:
 
 For more details, see:
 
-* [Server Documentation](https://github.com/NeuraMemoryAI/NeuraMemory-AI/blob/main/server/docs/README.md)
-* [API Documentation](https://github.com/NeuraMemoryAI/NeuraMemory-AI/blob/main/server/docs/API.md)
-* [Docker Guide](https://github.com/NeuraMemoryAI/NeuraMemory-AI/blob/main/DOCKER.md)
+* [Server Documentation](server/docs/README.md)
+* [API Documentation](server/docs/API.md)
+* [Docker Guide](DOCKER.md)
 
 ### Environment variables
 
@@ -123,5 +123,5 @@ JWT_SECRET=your_secret_with_minimum_32_characters
 - Backend: Node.js, Express, TypeScript, Zod, JWT, Multer
 - Database: MongoDB (user/account data), Qdrant (vector storage)
 - AI: OpenRouter (memory extraction and embeddings)
-- Processing: Firecrawl, pdfjs-dist, Mammoth, local OCR fallback
+- Processing: Firecrawl, pdfjs-dist, document parsers, local OCR fallback
 - Tooling: ESLint, Prettier, Vitest, Docker Compose
