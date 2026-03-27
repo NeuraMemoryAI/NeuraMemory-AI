@@ -145,7 +145,7 @@ describe('Preservation — Delete and Fetch Behavior Unchanged (Property 2)', ()
           expect(screen.getByText(memory.text)).toBeInTheDocument();
         });
 
-        const deleteButton = screen.getByRole('button', { name: /delete/i });
+        const deleteButton = screen.getByRole('button', { name: /^delete$/i });
         fireEvent.click(deleteButton);
 
         expect(window.confirm).toHaveBeenCalledWith(
@@ -177,7 +177,7 @@ describe('Preservation — Delete and Fetch Behavior Unchanged (Property 2)', ()
           expect(screen.getByText(memory.text)).toBeInTheDocument();
         });
 
-        const deleteButton = screen.getByRole('button', { name: /delete/i });
+        const deleteButton = screen.getByRole('button', { name: /^delete$/i });
         fireEvent.click(deleteButton);
 
         expect(window.confirm).toHaveBeenCalled();
@@ -215,7 +215,7 @@ describe('Preservation — Delete and Fetch Behavior Unchanged (Property 2)', ()
             expect(screen.getByText(targetMemory.text)).toBeInTheDocument();
           });
 
-          const deleteButtons = screen.getAllByRole('button', { name: /delete/i });
+          const deleteButtons = screen.getAllByRole('button', { name: /^delete$/i });
           fireEvent.click(deleteButtons[index]);
 
           await waitFor(() => {

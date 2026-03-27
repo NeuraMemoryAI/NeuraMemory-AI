@@ -1,13 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router';
 import { api } from '../lib/api';
-
-type Memory = {
-  id: string;
-  text: string;
-  kind: string;
-  createdAt: string;
-};
+import { type Memory, buildQueryParams, filterMemories } from '../lib/memoryFilters';
+import FilterBar from './FilterBar';
 
 const ManageMemories = () => {
   const navigate = useNavigate();
@@ -17,14 +12,23 @@ const ManageMemories = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState<string>('');
 
-  const fetchMemories = useCallback(async () => {
+  // Filter state
+  const [selectedKind, setSelectedKind] = useState('');
+  const [selectedSource, setSelectedSource] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [totalFetched, setTotalFetched] = useState(0);
+
+  const fetchMemories = useCallback(async (kind: string, source: string) => {
     setLoading(true);
     setError(null);
     try {
+      const query = buildQueryParams(kind, source);
       const res = await api.get<{ success: boolean; data: Memory[] }>(
-        '/api/v1/memories',
+        `/api/v1/memories${query}`,
       );
-      setMemories(res.data.data ?? []);
+      const data = res.data.data ?? [];
+      setMemories(data);
+      setTotalFetched(data.length);
     } catch {
       setError('Failed to load memories. Please try again.');
     } finally {
@@ -32,9 +36,19 @@ const ManageMemories = () => {
     }
   }, []);
 
+  // Initial fetch and re-fetch when kind/source filters change
   useEffect(() => {
-    fetchMemories();
-  }, [fetchMemories]);
+    fetchMemories(selectedKind, selectedSource);
+  }, [fetchMemories, selectedKind, selectedSource]);
+
+  // Derived: apply client-side text search
+  const visibleMemories = filterMemories(memories, searchQuery);
+
+  const handleClear = () => {
+    setSelectedKind('');
+    setSelectedSource('');
+    setSearchQuery('');
+  };
 
   const handleEdit = (memory: Memory) => {
     setEditingId(memory.id);
@@ -82,6 +96,8 @@ const ManageMemories = () => {
       alert('Failed to delete all memories. Please try again.');
     }
   };
+
+  const hasActiveFilters = selectedKind !== '' || selectedSource !== '' || searchQuery !== '';
 
   return (
     <main className="flex flex-col items-center w-full bg-black p-3 sm:p-4 md:p-8 flex-1 overflow-y-auto">
@@ -131,26 +147,74 @@ const ManageMemories = () => {
           </div>
         </div>
 
+        {/* Filter bar section */}
+        <div className="w-full rounded-2xl border border-gray-700 bg-neutral-900/60 px-4 py-4 md:px-6">
+          <FilterBar
+            selectedKind={selectedKind}
+            selectedSource={selectedSource}
+            searchQuery={searchQuery}
+            disabled={loading}
+            onKindChange={setSelectedKind}
+            onSourceChange={setSelectedSource}
+            onSearchChange={setSearchQuery}
+            onClear={handleClear}
+          />
+        </div>
+
         {/* Memory list */}
         <div className="w-full rounded-2xl border border-gray-700 bg-[#232b36] p-4 md:p-6">
+          {/* Memory count */}
+          {!loading && !error && totalFetched > 0 && (
+            <p className="text-xs text-gray-500 mb-4">
+              {hasActiveFilters
+                ? `Showing ${visibleMemories.length} of ${totalFetched} memories`
+                : `${totalFetched} memories`}
+            </p>
+          )}
+
           {loading && (
             <p className="text-gray-400 text-sm text-center py-8">Loading memories...</p>
           )}
           {error && (
-            <p className="text-red-400 text-sm text-center py-8">{error}</p>
+            <div className="flex flex-col items-center gap-3 py-8">
+              <p className="text-red-400 text-sm text-center">{error}</p>
+              <button
+                type="button"
+                onClick={() => fetchMemories(selectedKind, selectedSource)}
+                className="text-sm font-medium text-cyan-400 hover:text-cyan-300 bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 rounded-lg px-4 py-2 transition-colors"
+              >
+                Retry
+              </button>
+            </div>
           )}
           {!loading && !error && memories.length === 0 && (
-            <p className="text-gray-500 text-sm text-center py-8">No memories found.</p>
+            <p className="text-gray-500 text-sm text-center py-8">
+              {hasActiveFilters
+                ? 'No memories found for the selected filters.'
+                : 'No memories found.'}
+            </p>
           )}
-          {!loading && !error && memories.length > 0 && (
+          {!loading && !error && memories.length > 0 && visibleMemories.length === 0 && (
+            <p className="text-gray-500 text-sm text-center py-8">
+              No memories match your search.
+            </p>
+          )}
+          {!loading && !error && visibleMemories.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {memories.map((memory) => (
+              {visibleMemories.map((memory) => (
                 <div
                   key={memory.id}
                   className="rounded-2xl border border-gray-600 bg-neutral-900/80 p-5 shadow-md flex flex-col min-h-[190px]"
                 >
-                  <div className="text-[10px] uppercase tracking-widest text-cyan-400 mb-2">
-                    {memory.kind}
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-[10px] uppercase tracking-widest text-cyan-400">
+                      {memory.kind}
+                    </span>
+                    {memory.source && (
+                      <span className="text-[10px] uppercase tracking-widest text-gray-500">
+                        · {memory.source}
+                      </span>
+                    )}
                   </div>
 
                   {editingId === memory.id ? (

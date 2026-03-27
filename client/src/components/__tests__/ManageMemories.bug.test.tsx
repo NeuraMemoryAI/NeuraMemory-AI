@@ -80,7 +80,9 @@ describe('Bug Condition — Edit Affordance Missing (Property 1)', () => {
     fireEvent.click(editButton);
 
     // After clicking edit, a textarea should appear pre-filled with the memory text
-    const textarea = screen.getByRole('textbox');
+    // Use getAllByRole since the search input is also a textbox; find the textarea element
+    const textboxes = screen.getAllByRole('textbox');
+    const textarea = textboxes.find((el) => el.tagName === 'TEXTAREA');
     expect(textarea).toBeInTheDocument();
     expect(textarea).toHaveValue('User prefers dark mode');
   });
@@ -102,8 +104,9 @@ describe('Bug Condition — Edit Affordance Missing (Property 1)', () => {
     const editButton = screen.getByRole('button', { name: /edit/i });
     fireEvent.click(editButton);
 
-    // Edit the text in the textarea
-    const textarea = screen.getByRole('textbox');
+    // Edit the text in the textarea (use getAllByRole since search input is also a textbox)
+    const textboxes = screen.getAllByRole('textbox');
+    const textarea = textboxes.find((el) => el.tagName === 'TEXTAREA')!;
     fireEvent.change(textarea, { target: { value: 'User prefers light mode' } });
 
     // Click Save
