@@ -31,9 +31,12 @@ NeuraMemory is designed with a Universal API. Whether you are using a Go-based b
 4. **Hierarchical Memory Management**  
 Unlike simple databases, NeuraMemory distinguishes between:
 
-- Episodic Memory: Specific events (e.g., "We fixed the bug in the auth controller yesterday").
-- Semantic Memory: General facts (e.g., "I prefer using functional programming patterns in TypeScript").
-- Procedural Memory: How you like things done (e.g., "Always use snake_case for database schemas").
+    - **Episodic Memory:**  
+     Specific events (e.g., "We fixed the bug in the auth controller yesterday").
+    - **Semantic Memory:**  
+    General facts (e.g., "I prefer using functional programming patterns in TypeScript").
+    - **Procedural Memory:**  
+    How you like things done (e.g., "Always use snake_case for database schemas").
 
 ## Key Features
 
@@ -72,23 +75,13 @@ docker compose logs -f
 
 ### Local setup
 
-```bash
-git clone https://github.com/Gautam7352/NeuraMemory-AI.git
+`git clone https://github.com/Gautam7352/NeuraMemory-AI.git`
 
-cd NeuraMemory-AI
+`cd NeuraMemory-AI`
 
-make dev
-```
+`cp .env.example .env` **(Put all the env credentials in client and server folder)**
 
-```bash
-cd server
-npm run dev
-```
-
-```bash
-cd client
-npm run dev
-```
+`make dev`
 
 Endpoints:
 
@@ -112,6 +105,31 @@ MONGODB_URI=mongodb://localhost:27017/neuramemory
 QDRANT_URL=http://localhost:6333
 OPENROUTER_API_KEY=your_openrouter_api_key
 JWT_SECRET=your_secret_with_minimum_32_characters
+```
+
+## Connect MCP in Claude Desktop
+
+**Paste in the claude desktop config:**
+
+```json
+{
+  "mcpServers": {
+    "memories": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "here-https-server-url/api/v1/mcp?apiKey={YOUR_API_KEY}"
+      ]
+    }
+  },
+  "preferences": {
+    "coworkScheduledTasksEnabled": false,
+    "ccdScheduledTasksEnabled": false,
+    "sidebarMode": "chat",
+    "coworkWebSearchEnabled": true
+  }
+}
 ```
 
 ## Project Structure
