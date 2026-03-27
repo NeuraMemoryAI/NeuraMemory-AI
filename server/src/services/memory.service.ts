@@ -14,6 +14,8 @@ import {
   deleteMemoriesByUser,
   deleteMemoryById,
   searchMemories,
+  getMemoryPointById,
+  updateMemoryPoint,
 } from '../repositories/memory.repository.js';
 import { AppError } from '../utils/AppError.js';
 import type {
@@ -123,7 +125,7 @@ export async function processLink(input: LinkInput): Promise<MemoryResponse> {
 export async function getUserMemories(
   userId: string,
   options?: { kind?: string; source?: MemorySource; limit?: number; offset?: string | null },
-): Promise<{ points: StoredMemoryPayload[]; nextOffset: string | null }> {
+): Promise<{ points: (StoredMemoryPayload & { id: string })[]; nextOffset: string | null }> {
   return getMemoriesByUser(userId, options);
 }
 
@@ -153,4 +155,26 @@ export async function deleteUserMemoryById(
   // ensures the user is authenticated, and delete directly.
   void userId;
   await deleteMemoryById(pointId);
+}
+
+export async function updateMemoryById(
+  userId: string,
+  pointId: string,
+  newText: string,
+): Promise<void> {
+  if (!newText.trim()) {
+    throw new AppError(400, 'Memory text cannot be empty.');
+  }
+
+  const point = await getMemoryPointById(pointId);
+  if (!point || point.payload.userId !== userId) {
+    throw new AppError(403, 'Forbidden: memory does not belong to this user.');
+  }
+
+  const [vector] = await generateEmbeddings([newText]);
+  if (!vector) {
+    throw new AppError(500, 'Embedding generation returned no result.');
+  }
+
+  await updateMemoryPoint(pointId, vector, newText);
 }

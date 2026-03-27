@@ -14,6 +14,8 @@ const ManageMemories = () => {
   const [memories, setMemories] = useState<Memory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editText, setEditText] = useState<string>('');
 
   const fetchMemories = useCallback(async () => {
     setLoading(true);
@@ -34,10 +36,31 @@ const ManageMemories = () => {
     fetchMemories();
   }, [fetchMemories]);
 
+  const handleEdit = (memory: Memory) => {
+    setEditingId(memory.id);
+    setEditText(memory.text);
+  };
+
+  const handleSave = async (id: string) => {
+    try {
+      await api.patch(`/api/v1/memories/${id}`, { text: editText });
+      setMemories((prev) =>
+        prev.map((m) => (m.id === id ? { ...m, text: editText } : m)),
+      );
+      setEditingId(null);
+      setEditText('');
+    } catch {
+      alert('Failed to update memory. Please try again.');
+    }
+  };
+
+  const handleCancel = () => {
+    setEditingId(null);
+    setEditText('');
+  };
+
   const handleDelete = async (id: string) => {
-    const confirmed = window.confirm(
-      'Delete this memory? This cannot be undone.',
-    );
+    const confirmed = window.confirm('Delete this memory? This cannot be undone.');
     if (!confirmed) return;
     try {
       await api.delete(`/api/v1/memories/${id}`);
@@ -47,9 +70,23 @@ const ManageMemories = () => {
     }
   };
 
+  const handleDeleteAll = async () => {
+    const confirmed = window.confirm(
+      'Delete ALL memories? This cannot be undone.',
+    );
+    if (!confirmed) return;
+    try {
+      await api.delete('/api/v1/memories');
+      setMemories([]);
+    } catch {
+      alert('Failed to delete all memories. Please try again.');
+    }
+  };
+
   return (
     <main className="flex flex-col items-center w-full bg-black p-3 sm:p-4 md:p-8 flex-1 overflow-y-auto">
       <div className="w-full max-w-7xl min-h-[70vh] bg-neutral-900 rounded-2xl sm:rounded-3xl shadow-2xl border border-gray-800 p-4 sm:p-6 md:p-10 flex flex-col gap-6 mx-auto">
+        {/* Header */}
         <div className="w-full rounded-2xl border border-gray-700 bg-linear-to-r from-neutral-900 via-neutral-900 to-slate-900/60 p-4 sm:p-5 md:p-6">
           <div className="flex flex-col gap-4">
             <button
@@ -74,28 +111,36 @@ const ManageMemories = () => {
                   up entries you no longer need.
                 </p>
               </div>
-              <button
-                onClick={() => navigate('/')}
-                className="bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-semibold rounded-lg px-4 py-2 h-fit transition shadow cursor-pointer">
-                + New Memory
-              </button>
+              <div className="flex gap-2 flex-wrap">
+                <button
+                  onClick={() => navigate('/')}
+                  className="bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-semibold rounded-lg px-4 py-2 h-fit transition shadow cursor-pointer"
+                >
+                  + New Memory
+                </button>
+                {memories.length > 0 && (
+                  <button
+                    onClick={handleDeleteAll}
+                    className="bg-red-700 hover:bg-red-800 text-white text-sm font-semibold rounded-lg px-4 py-2 h-fit transition shadow cursor-pointer"
+                  >
+                    Delete All
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
 
+        {/* Memory list */}
         <div className="w-full rounded-2xl border border-gray-700 bg-[#232b36] p-4 md:p-6">
           {loading && (
-            <p className="text-gray-400 text-sm text-center py-8">
-              Loading memories...
-            </p>
+            <p className="text-gray-400 text-sm text-center py-8">Loading memories...</p>
           )}
           {error && (
             <p className="text-red-400 text-sm text-center py-8">{error}</p>
           )}
           {!loading && !error && memories.length === 0 && (
-            <p className="text-gray-500 text-sm text-center py-8">
-              No memories found.
-            </p>
+            <p className="text-gray-500 text-sm text-center py-8">No memories found.</p>
           )}
           {!loading && !error && memories.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -104,24 +149,67 @@ const ManageMemories = () => {
                   key={memory.id}
                   className="rounded-2xl border border-gray-600 bg-neutral-900/80 p-5 shadow-md flex flex-col min-h-[190px]"
                 >
-                  <div className="flex items-start justify-end gap-2 mb-3 flex-wrap">
-                    <button
-                      className="bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-md px-3 py-1 transition"
-                      type="button"
-                      onClick={() => handleDelete(memory.id)}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                  <div className="text-[10px] uppercase tracking-widest text-cyan-400 mb-1">
+                  <div className="text-[10px] uppercase tracking-widest text-cyan-400 mb-2">
                     {memory.kind}
                   </div>
-                  <div className="text-sm leading-6 text-gray-300 flex-1">
-                    {memory.text}
-                  </div>
-                  <div className="text-[10px] text-gray-600 mt-3">
-                    {new Date(memory.createdAt).toLocaleDateString()}
-                  </div>
+
+                  {editingId === memory.id ? (
+                    /* Edit mode */
+                    <div className="flex flex-col gap-2 flex-1">
+                      <textarea
+                        className="w-full bg-neutral-800 text-gray-200 text-sm rounded-md p-2 border border-gray-600 resize-none focus:outline-none focus:border-cyan-500"
+                        rows={4}
+                        value={editText}
+                        onChange={(e) => setEditText(e.target.value)}
+                        autoFocus
+                      />
+                      <div className="flex gap-2 mt-1">
+                        <button
+                          className="bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-semibold rounded-md px-3 py-1 transition"
+                          type="button"
+                          onClick={() => handleSave(memory.id)}
+                        >
+                          Save
+                        </button>
+                        <button
+                          className="bg-neutral-700 hover:bg-neutral-600 text-white text-xs font-semibold rounded-md px-3 py-1 transition"
+                          type="button"
+                          onClick={handleCancel}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    /* View mode */
+                    <>
+                      <div className="text-sm leading-6 text-gray-300 flex-1">
+                        {memory.text}
+                      </div>
+                      <div className="flex items-center justify-between mt-3">
+                        <span className="text-[10px] text-gray-600">
+                          {new Date(memory.createdAt).toLocaleDateString()}
+                        </span>
+                        <div className="flex gap-2">
+                          <button
+                            className="bg-neutral-700 hover:bg-neutral-600 text-white text-xs font-semibold rounded-md px-3 py-1 transition"
+                            type="button"
+                            aria-label="Edit"
+                            onClick={() => handleEdit(memory)}
+                          >
+                            ✏️ Edit
+                          </button>
+                          <button
+                            className="bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-md px-3 py-1 transition"
+                            type="button"
+                            onClick={() => handleDelete(memory.id)}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               ))}
             </div>
