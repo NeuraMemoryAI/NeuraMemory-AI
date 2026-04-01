@@ -10,4 +10,14 @@ export default defineConfig({
     host: true,
     port: 5173,
   },
+  test: {
+    environment: 'jsdom',
+    setupFiles: ['./src/test-setup.ts'],
+    globals: true,
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'html'],
+      exclude: ['node_modules/', 'src/test-setup.ts', 'dist/'],
+    },
+  },
 });
