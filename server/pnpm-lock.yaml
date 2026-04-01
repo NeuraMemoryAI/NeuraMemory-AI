@@ -65,6 +65,9 @@ importers:
       swagger-ui-express:
         specifier: ^5.0.1
         version: 5.0.1(express@5.2.1)
+      winston:
+        specifier: ^3.19.0
+        version: 3.19.0
       zod:
         specifier: ^3.23.8
         version: 3.25.76
@@ -499,7 +502,11 @@ packages:
     resolution: {integrity: sha512-aZFQeirWVqWAa1a8vJ957LMzcXkFHGbsoRhzc8AkGfg6V0jtK8PlG8/eyyc2xhYsR961FDDx1Tx6nyE0K7lS+A==}
     engines: {node: '>=18.17.0', pnpm: '>=8'}
     peerDependencies:
-      typescript: '>=4.7'
+      '@cfworker/json-schema': ^4.1.1
+      zod: ^3.25 || ^4.0
+    peerDependenciesMeta:
+      '@cfworker/json-schema':
+        optional: true
 
   '@qdrant/openapi-typescript-fetch@1.2.6':
     resolution: {integrity: sha512-oQG/FejNpItrxRHoyctYvT3rwGZOnK4jr3JdppO/c78ktDvkWiPXPHNsrDf33K9sZdRb6PR7gi4noIapu5q4HA==}
@@ -1640,12 +1647,9 @@ packages:
     resolution: {integrity: sha512-osTKySlrdYrLYTt0zjhY8yp0JUBmWDCN+Q+QxsV4xMQnnoVFpylgKGgxwN8sSdTNw0G4y+WUXs4eCMWpyDNWZQ==}
     hasBin: true
     peerDependencies:
-      ws: ^8.18.0
-      zod: ^3.25 || ^4.0
+      pg-native: '>=3.0.1'
     peerDependenciesMeta:
-      ws:
-        optional: true
-      zod:
+      pg-native:
         optional: true
 
   option@0.2.4:
@@ -2963,6 +2967,8 @@ snapshots:
 
   ee-first@1.1.1: {}
 
+  enabled@2.0.0: {}
+
   encodeurl@2.0.0: {}
 
   enhanced-resolve@5.20.1:
@@ -3203,6 +3209,8 @@ snapshots:
 
   flatted@3.4.1: {}
 
+  fn.name@1.1.0: {}
+
   follow-redirects@1.15.11: {}
 
   form-data@4.0.5:
@@ -3359,6 +3367,8 @@ snapshots:
     dependencies:
       json-buffer: 3.0.1
 
+  kuler@2.0.0: {}
+
   levn@0.4.1:
     dependencies:
       prelude-ls: 1.2.1
@@ -3514,6 +3524,10 @@ snapshots:
   once@1.4.0:
     dependencies:
       wrappy: 1.0.2
+
+  one-time@1.0.0:
+    dependencies:
+      fn.name: 1.1.0
 
   openai@6.27.0(zod@3.25.76):
     optionalDependencies:
@@ -3704,6 +3718,8 @@ snapshots:
   safe-buffer@5.1.2: {}
 
   safe-buffer@5.2.1: {}
+
+  safe-stable-stringify@2.5.0: {}
 
   safer-buffer@2.1.2: {}
 
