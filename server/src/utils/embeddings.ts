@@ -47,4 +47,3 @@ export async function generateEmbeddings(texts: string[]): Promise<number[][]> {
     throw new AppError(502, `Embedding generation failed: ${message}`);
   }
 }
-

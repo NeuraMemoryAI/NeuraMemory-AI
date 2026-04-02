@@ -33,16 +33,19 @@ describe('memory.service', () => {
           kind: 'semantic',
           source: 'text',
           createdAt: new Date().toISOString(),
-        } as any,
+        },
       });
 
       // The call should throw a 403 AppError
-      await expect(deleteUserMemoryById(userId, pointId)).rejects.toThrow(AppError);
+      await expect(deleteUserMemoryById(userId, pointId)).rejects.toThrow(
+        AppError,
+      );
       try {
         await deleteUserMemoryById(userId, pointId);
-      } catch (error: any) {
-        expect(error.statusCode).toBe(403);
-        expect(error.message).toContain('Forbidden');
+      } catch (error: unknown) {
+        const appError = error as AppError;
+        expect(appError.statusCode).toBe(403);
+        expect(appError.message).toContain('Forbidden');
       }
 
       // Deletion should NOT have been called
@@ -62,7 +65,7 @@ describe('memory.service', () => {
           kind: 'semantic',
           source: 'text',
           createdAt: new Date().toISOString(),
-        } as any,
+        },
       });
 
       await deleteUserMemoryById(userId, pointId);
@@ -78,11 +81,14 @@ describe('memory.service', () => {
       // Mock getMemoryPointById to return null
       vi.mocked(memoryRepository.getMemoryPointById).mockResolvedValue(null);
 
-      await expect(deleteUserMemoryById(userId, pointId)).rejects.toThrow(AppError);
+      await expect(deleteUserMemoryById(userId, pointId)).rejects.toThrow(
+        AppError,
+      );
       try {
         await deleteUserMemoryById(userId, pointId);
-      } catch (error: any) {
-        expect(error.statusCode).toBe(403);
+      } catch (error: unknown) {
+        const appError = error as AppError;
+        expect(appError.statusCode).toBe(403);
       }
 
       expect(memoryRepository.deleteMemoryById).not.toHaveBeenCalled();
