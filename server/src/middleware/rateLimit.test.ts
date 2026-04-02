@@ -13,10 +13,10 @@ describe('rateLimit middleware', () => {
 
   it('should enforce production limits for loginRateLimiter', async () => {
     vi.stubEnv('NODE_ENV', 'production');
-    const { loginRateLimiter } = await import('./rateLimit');
+    const { loginRateLimiter } = await import('./rateLimit.js');
 
     const app = express();
-    app.use('/login', loginRateLimiter, (req, res) => {
+    app.use('/login', loginRateLimiter, (_req, res) => {
       res.status(200).json({ success: true });
     });
 
@@ -35,10 +35,10 @@ describe('rateLimit middleware', () => {
 
   it('should enforce production limits for registerRateLimiter', async () => {
     vi.stubEnv('NODE_ENV', 'production');
-    const { registerRateLimiter } = await import('./rateLimit');
+    const { registerRateLimiter } = await import('./rateLimit.js');
 
     const app = express();
-    app.use('/register', registerRateLimiter, (req, res) => {
+    app.use('/register', registerRateLimiter, (_req, res) => {
       res.status(200).json({ success: true });
     });
 
@@ -57,10 +57,10 @@ describe('rateLimit middleware', () => {
 
   it('should allow high limits in test environment for loginRateLimiter', async () => {
     vi.stubEnv('NODE_ENV', 'test');
-    const { loginRateLimiter } = await import('./rateLimit');
+    const { loginRateLimiter } = await import('./rateLimit.js');
 
     const app = express();
-    app.use('/login', loginRateLimiter, (req, res) => {
+    app.use('/login', loginRateLimiter, (_req, res) => {
       res.status(200).json({ success: true });
     });
 
@@ -73,10 +73,10 @@ describe('rateLimit middleware', () => {
 
   it('should include rate limit headers in responses', async () => {
     vi.stubEnv('NODE_ENV', 'production');
-    const { loginRateLimiter } = await import('./rateLimit');
+    const { loginRateLimiter } = await import('./rateLimit.js');
 
     const app = express();
-    app.use('/login', loginRateLimiter, (req, res) => {
+    app.use('/login', loginRateLimiter, (_req, res) => {
       res.status(200).json({ success: true });
     });
 
