@@ -33,7 +33,7 @@ describe('memory.service', () => {
           kind: 'semantic',
           source: 'text',
           createdAt: new Date().toISOString(),
-        } as any,
+        } as unknown as Record<string, unknown>,
       });
 
       // The call should throw a 403 AppError
@@ -42,7 +42,7 @@ describe('memory.service', () => {
       );
       try {
         await deleteUserMemoryById(userId, pointId);
-      } catch (error: any) {
+      } catch (error: unknown) {
         expect(error.statusCode).toBe(403);
         expect(error.message).toContain('Forbidden');
       }
@@ -64,7 +64,7 @@ describe('memory.service', () => {
           kind: 'semantic',
           source: 'text',
           createdAt: new Date().toISOString(),
-        } as any,
+        } as unknown as Record<string, unknown>,
       });
 
       await deleteUserMemoryById(userId, pointId);
@@ -85,7 +85,7 @@ describe('memory.service', () => {
       );
       try {
         await deleteUserMemoryById(userId, pointId);
-      } catch (error: any) {
+      } catch (error: unknown) {
         expect(error.statusCode).toBe(403);
       }
 

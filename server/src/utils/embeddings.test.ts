@@ -17,7 +17,11 @@ describe('embeddings util', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (getOpenRouterClient as any).mockReturnValue({
+    (
+      getOpenRouterClient as unknown as {
+        mockReturnValue: (val: unknown) => void;
+      }
+    ).mockReturnValue({
       embeddings: {
         create: mockCreate,
       },
