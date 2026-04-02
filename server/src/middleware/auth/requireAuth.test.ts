@@ -33,7 +33,7 @@ describe('requireAuth middleware', () => {
 
     mockRequest.headers = { authorization: `Bearer ${validToken}` };
     vi.mocked(jwt.verify).mockReturnValue(
-      decodedPayload as unknown as any,
+      decodedPayload as unknown as void,
     );
 
     requireAuth(mockRequest as Request, mockResponse as Response, mockNext);
@@ -50,7 +50,7 @@ describe('requireAuth middleware', () => {
 
     mockRequest.cookies = { authorization: validToken };
     vi.mocked(jwt.verify).mockReturnValue(
-      decodedPayload as unknown as any,
+      decodedPayload as unknown as void,
     );
 
     requireAuth(mockRequest as Request, mockResponse as Response, mockNext);
@@ -77,7 +77,7 @@ describe('requireAuth middleware', () => {
 
     mockRequest.headers = { authorization: `Bearer ${validToken}` };
     vi.mocked(jwt.verify).mockReturnValue(
-      invalidPayload as unknown as any,
+      invalidPayload as unknown as void,
     );
 
     requireAuth(mockRequest as Request, mockResponse as Response, mockNext);
