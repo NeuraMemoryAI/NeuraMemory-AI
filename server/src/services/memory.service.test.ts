@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { deleteUserMemoryById } from './memory.service.js';
 import * as memoryRepository from '../repositories/memory.repository.js';
 import { AppError } from '../utils/AppError.js';
+import type { StoredMemoryPayload } from '../types/memory.types.js';
 
 vi.mock('../repositories/memory.repository.js', () => ({
   deleteMemoryById: vi.fn(),
@@ -33,16 +34,22 @@ describe('memory.service', () => {
           kind: 'semantic',
           source: 'text',
           createdAt: new Date().toISOString(),
-        } as any,
+        } as unknown as StoredMemoryPayload,
       });
 
       // The call should throw a 403 AppError
-      await expect(deleteUserMemoryById(userId, pointId)).rejects.toThrow(AppError);
+      await expect(deleteUserMemoryById(userId, pointId)).rejects.toThrow(
+        AppError,
+      );
       try {
         await deleteUserMemoryById(userId, pointId);
-      } catch (error: any) {
-        expect(error.statusCode).toBe(403);
-        expect(error.message).toContain('Forbidden');
+      } catch (error: unknown) {
+        if (error instanceof AppError) {
+          expect(error.statusCode).toBe(403);
+          expect(error.message).toContain('Forbidden');
+        } else {
+          throw error;
+        }
       }
 
       // Deletion should NOT have been called
@@ -62,7 +69,7 @@ describe('memory.service', () => {
           kind: 'semantic',
           source: 'text',
           createdAt: new Date().toISOString(),
-        } as any,
+        } as unknown as StoredMemoryPayload,
       });
 
       await deleteUserMemoryById(userId, pointId);
@@ -78,11 +85,17 @@ describe('memory.service', () => {
       // Mock getMemoryPointById to return null
       vi.mocked(memoryRepository.getMemoryPointById).mockResolvedValue(null);
 
-      await expect(deleteUserMemoryById(userId, pointId)).rejects.toThrow(AppError);
+      await expect(deleteUserMemoryById(userId, pointId)).rejects.toThrow(
+        AppError,
+      );
       try {
         await deleteUserMemoryById(userId, pointId);
-      } catch (error: any) {
-        expect(error.statusCode).toBe(403);
+      } catch (error: unknown) {
+        if (error instanceof AppError) {
+          expect(error.statusCode).toBe(403);
+        } else {
+          throw error;
+        }
       }
 
       expect(memoryRepository.deleteMemoryById).not.toHaveBeenCalled();

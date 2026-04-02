@@ -48,3 +48,16 @@ export async function generateEmbeddings(texts: string[]): Promise<number[][]> {
   }
 }
 
+/**
+ * Generate an embedding for a single text string.
+ *
+ * @param text The string to embed.
+ * @returns    A number array of length `EMBEDDING_DIMENSION`.
+ */
+export async function generateEmbedding(text: string): Promise<number[]> {
+  const [embedding] = await generateEmbeddings([text]);
+  if (!embedding) {
+    throw new AppError(500, 'Embedding generation returned no result.');
+  }
+  return embedding;
+}
