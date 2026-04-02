@@ -34,7 +34,7 @@ describe('memory.service', () => {
           kind: 'semantic',
           source: 'text',
           createdAt: new Date().toISOString(),
-        } as unknown as StoredMemoryPayload,
+        } as unknown as Record<string, unknown>,
       });
 
       // The call should throw a 403 AppError
@@ -44,12 +44,8 @@ describe('memory.service', () => {
       try {
         await deleteUserMemoryById(userId, pointId);
       } catch (error: unknown) {
-        if (error instanceof AppError) {
-          expect(error.statusCode).toBe(403);
-          expect(error.message).toContain('Forbidden');
-        } else {
-          throw error;
-        }
+        expect(error.statusCode).toBe(403);
+        expect(error.message).toContain('Forbidden');
       }
 
       // Deletion should NOT have been called
@@ -69,7 +65,7 @@ describe('memory.service', () => {
           kind: 'semantic',
           source: 'text',
           createdAt: new Date().toISOString(),
-        } as unknown as StoredMemoryPayload,
+        } as unknown as Record<string, unknown>,
       });
 
       await deleteUserMemoryById(userId, pointId);
@@ -91,11 +87,7 @@ describe('memory.service', () => {
       try {
         await deleteUserMemoryById(userId, pointId);
       } catch (error: unknown) {
-        if (error instanceof AppError) {
-          expect(error.statusCode).toBe(403);
-        } else {
-          throw error;
-        }
+        expect(error.statusCode).toBe(403);
       }
 
       expect(memoryRepository.deleteMemoryById).not.toHaveBeenCalled();

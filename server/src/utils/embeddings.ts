@@ -47,17 +47,13 @@ export async function generateEmbeddings(texts: string[]): Promise<number[][]> {
     throw new AppError(502, `Embedding generation failed: ${message}`);
   }
 }
-
 /**
- * Generate an embedding for a single text string.
- *
- * @param text The string to embed.
- * @returns    A number array of length `EMBEDDING_DIMENSION`.
+ * Generate a single embedding for a string.
  */
 export async function generateEmbedding(text: string): Promise<number[]> {
-  const [embedding] = await generateEmbeddings([text]);
-  if (!embedding) {
+  const result = await generateEmbeddings([text]);
+  if (result.length === 0) {
     throw new AppError(500, 'Embedding generation returned no result.');
   }
-  return embedding;
+  return result[0];
 }
