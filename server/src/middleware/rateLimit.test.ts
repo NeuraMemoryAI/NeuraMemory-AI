@@ -17,7 +17,7 @@ describe('Rate Limit Middleware', () => {
   describe('Development/Test Environment', () => {
     beforeEach(async () => {
       vi.stubEnv('NODE_ENV', 'development');
-      const mod = await import('./rateLimit');
+      const mod = await import('./rateLimit.js');
       loginRateLimiter = mod.loginRateLimiter;
       registerRateLimiter = mod.registerRateLimiter;
     });
@@ -26,7 +26,7 @@ describe('Rate Limit Middleware', () => {
       const app = express();
       // Need trust proxy for IP generation if we were spoofing, but default is fine here
       app.use('/register', registerRateLimiter);
-      app.post('/register', (req, res) =>
+      app.post('/register', (_req, res) =>
         res.status(200).json({ success: true }),
       );
 
@@ -39,7 +39,7 @@ describe('Rate Limit Middleware', () => {
     it('loginRateLimiter should allow requests and set headers', async () => {
       const app = express();
       app.use('/login', loginRateLimiter);
-      app.post('/login', (req, res) => res.status(200).json({ success: true }));
+      app.post('/login', (_req, res) => res.status(200).json({ success: true }));
 
       const response = await request(app).post('/login');
 
@@ -51,7 +51,7 @@ describe('Rate Limit Middleware', () => {
   describe('Production Environment', () => {
     beforeEach(async () => {
       vi.stubEnv('NODE_ENV', 'production');
-      const mod = await import('./rateLimit');
+      const mod = await import('./rateLimit.js');
       loginRateLimiter = mod.loginRateLimiter;
       registerRateLimiter = mod.registerRateLimiter;
     });
@@ -59,7 +59,7 @@ describe('Rate Limit Middleware', () => {
     it('registerRateLimiter should block requests after 10 attempts', async () => {
       const app = express();
       app.use('/register', registerRateLimiter);
-      app.post('/register', (req, res) =>
+      app.post('/register', (_req, res) =>
         res.status(200).json({ success: true }),
       );
 
@@ -82,7 +82,7 @@ describe('Rate Limit Middleware', () => {
     it('loginRateLimiter should block requests after 5 attempts', async () => {
       const app = express();
       app.use('/login', loginRateLimiter);
-      app.post('/login', (req, res) => res.status(200).json({ success: true }));
+      app.post('/login', (_req, res) => res.status(200).json({ success: true }));
 
       // Send 5 successful requests
       for (let i = 0; i < 5; i++) {
