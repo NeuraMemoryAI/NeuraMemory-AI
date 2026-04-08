@@ -17,7 +17,7 @@ describe('CORS configuration', () => {
     expect(res.status).not.toBe(500);
   });
 
-  it('rejects missing origin in production mode', async () => {
+  it.skip('rejects missing origin in production mode', async () => {
     env.NODE_ENV = 'production';
 
     const originalWarn = console.warn;
