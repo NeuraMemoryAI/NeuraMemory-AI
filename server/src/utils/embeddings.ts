@@ -7,6 +7,7 @@
 
 import { getOpenRouterClient } from '../lib/openrouter.js';
 import { AppError } from './AppError.js';
+import { logger } from './logger.js';
 
 /** Embedding model — must be hosted on OpenRouter or a compatible endpoint */
 const EMBEDDING_MODEL = 'openai/text-embedding-3-small';
@@ -43,7 +44,7 @@ export async function generateEmbeddings(texts: string[]): Promise<number[][]> {
       err instanceof Error
         ? err.message
         : 'Unknown error generating embeddings';
-    console.error('[Embeddings] API call failed:', message);
+    logger.error(`[Embeddings] API call failed: ${message}`);
     throw new AppError(502, `Embedding generation failed: ${message}`);
   }
 }
@@ -52,8 +53,9 @@ export async function generateEmbeddings(texts: string[]): Promise<number[][]> {
  */
 export async function generateEmbedding(text: string): Promise<number[]> {
   const result = await generateEmbeddings([text]);
-  if (result.length === 0) {
+  const embedding = result[0];
+  if (!embedding) {
     throw new AppError(500, 'Embedding generation returned no result.');
   }
-  return result[0];
+  return embedding;
 }

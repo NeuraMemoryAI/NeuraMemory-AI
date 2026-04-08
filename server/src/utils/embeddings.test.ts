@@ -134,19 +134,13 @@ describe('embeddings util', () => {
       expect(result).toEqual([]);
     });
 
-      // Because '[]' won't throw until it gets returned back out, wait...
-      // Actually `generateEmbeddings` expects response.data to exist and loops over it.
-      // If `response.data` is empty, `response.data` is `[]`.
-      // `[...response.data]` is `[]`, mapped is `[]`.
-      // Returned is `[]`.
-      // `generateEmbedding` will then do: `const [embedding] = await generateEmbeddings(['valid text']);`
-      // `embedding` will be `undefined`.
-      // And throw `AppError(500, 'Embedding generation returned no result.')`.
+    it('should throw AppError with status 502 on single API error', async () => {
+      mockCreate.mockRejectedValueOnce(new Error('API failure'));
 
       const error = await generateEmbedding('valid text').catch((e) => e);
       expect(error).toBeInstanceOf(AppError);
       expect(error.statusCode).toBe(502);
-      expect(error.message).toContain('Embedding generation failed');
+      expect(error.message).toBe('Embedding generation failed: API failure');
     });
   });
 });
