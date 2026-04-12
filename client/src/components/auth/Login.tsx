@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { AuthApiError } from '@supabase/supabase-js';
 
-import { signInUser } from '../utils/supabase';
+import { signInUser } from '../../utils/supabase';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -20,7 +20,6 @@ const Login = () => {
     setLoading(true);
 
     try {
-      // await api.post('/api/v1/login', { email, password });
       await signInUser(email, password);
       navigate('/');
     } catch (err) {
@@ -78,6 +77,12 @@ const Login = () => {
               className="bg-neutral-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none transition"
               required
             />
+            <button
+              className="text-white text-sm self-end cursor-pointer hover:underline"
+              onClick={() => navigate('/forget-password')}
+            >
+              Forgot your password?
+            </button>
           </div>
 
           {error && <p className="text-red-500 text-sm text-center">{error}</p>}
@@ -91,10 +96,10 @@ const Login = () => {
           </button>
         </form>
 
-        <div className="text-center text-gray-400 text-sm mt-2">
-          Don&apos;t have an account?{' '}
+        <div className="text-center text-gray-200 text-sm mt-2">
+          New to NeuraMemory?{' '}
           <button
-            className="text-blue-400 hover:underline font-semibold transition"
+            className="text-blue-400 cursor-pointer hover:underline font-semibold transition"
             onClick={() => navigate('/signup')}
           >
             Sign up

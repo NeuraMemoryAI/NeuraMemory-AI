@@ -5,9 +5,11 @@ import { Analytics } from '@vercel/analytics/react';
 import Navbar from './components/Navbar';
 import DashboardLayout from './components/DashboardLayout';
 import ManageMemories from './components/ManageMemories';
-import Login from './components/Login';
-import Signup from './components/Signup';
+import Login from './components/auth/Login';
+import Signup from './components/auth/Signup';
+import ForgetPassword from './components/auth/ForgetPassword';
 import { api } from './lib/api';
+import { getUser } from './utils/supabase';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const [status, setStatus] = useState<'loading' | 'auth' | 'unauth'>(
@@ -19,6 +21,11 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
       .get('/api/v1/me')
       .then(() => setStatus('auth'))
       .catch(() => setStatus('unauth'));
+    const getCurrentUserDetail = async () => {
+      const user = await getUser();
+      console.log(user);
+    };
+    console.log(getCurrentUserDetail());
   }, []);
 
   if (status === 'loading') return null;
@@ -31,6 +38,7 @@ function AppContent() {
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
+      <Route path="/forget-password" element={<ForgetPassword />} />
       <Route
         path="/manage-memories"
         element={
