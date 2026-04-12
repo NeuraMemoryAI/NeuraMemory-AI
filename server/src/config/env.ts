@@ -32,6 +32,13 @@ const envSchema = z.object({
   OCR_FORCE: z.string().default('false'),
   ALLOWED_ORIGINS: z.string(),
   CHAT_MODEL: z.string().default('google/gemini-2.0-flash-001'),
+  SIMILARITY_THRESHOLD: z.coerce.number().default(0.82),
+  DUPLICATE_THRESHOLD: z.coerce.number().default(0.95),
+  CONFLICT_CONFIDENCE_THRESHOLD: z.coerce.number().default(0.75),
+  RETRIEVAL_DEDUP_THRESHOLD: z.coerce.number().default(0.88),
+  CONFLICT_STRATEGY: z
+    .enum(['recency', 'confidence', 'merge', 'flag'])
+    .default('recency'),
 });
 
 const _env = envSchema.safeParse(process.env);

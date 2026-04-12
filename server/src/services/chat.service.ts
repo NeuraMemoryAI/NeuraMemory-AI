@@ -1,5 +1,6 @@
 import { generateEmbeddings } from '../utils/embeddings.js';
-import { searchMemories } from '../repositories/memory.repository.js';
+import { searchMemoriesScored } from '../repositories/memory.repository.js';
+import { filterRetrieved } from '../services/conflict-detection.service.js';
 import {
   getOrCreateConversation,
   getLatestConversation,
@@ -55,11 +56,16 @@ export async function sendMessage(
     throw new AppError(500, 'Embedding generation returned no result.');
   }
 
-  // c. Retrieve top 5 memories
-  const memories = await searchMemories(vector, userId, 5);
+  // c. Retrieve top 10 memories (more candidates for deduplication)
+  const rawMemories = await searchMemoriesScored(vector, userId, 10);
 
-  // d. Build system prompt
-  const systemPrompt = buildChatSystemPrompt(memories);
+  // c2. Deduplicate near-identical memories before building the prompt
+  const dedupedMemories = await filterRetrieved(rawMemories);
+
+  // d. Build system prompt with top 5 deduplicated memories
+  const systemPrompt = buildChatSystemPrompt(
+    dedupedMemories.slice(0, 5).map((m) => m.payload),
+  );
 
   // e. Get or create conversation
   const conversation = await getOrCreateConversation(userId);
