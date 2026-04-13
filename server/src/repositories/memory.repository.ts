@@ -13,6 +13,7 @@ import { EMBEDDING_DIMENSION } from '../utils/embeddings.js';
 import type {
   StoredMemoryPayload,
   MemorySource,
+  ScoredMemory,
 } from '../types/memory.types.js';
 
 const COLLECTION_NAME = 'memories';
@@ -285,4 +286,85 @@ export async function deleteMemoryById(pointId: string): Promise<void> {
     wait: true,
     points: [pointId],
   });
+}
+
+// ---------------------------------------------------------------------------
+// Conflict-resolution helpers (Tasks 7.1 – 7.3)
+// ---------------------------------------------------------------------------
+
+/**
+ * Search memories by semantic similarity and return scored results including
+ * the raw vector so callers can run further filtering (e.g. filterRetrieved).
+ *
+ * Requirements: 1.1, 7.1, 8.6
+ */
+export async function searchMemoriesScored(
+  vector: number[],
+  userId: string,
+  limit = 10,
+): Promise<ScoredMemory[]> {
+  await ensureCollection();
+  const client = getQdrantClient();
+
+  const results = await client.search(COLLECTION_NAME, {
+    vector,
+    limit,
+    filter: {
+      must: [{ key: 'userId', match: { value: userId } }],
+    },
+    with_payload: true,
+    with_vector: true,
+  });
+
+  return results.map((r) => {
+    const base = {
+      id: String(r.id),
+      payload: r.payload as unknown as StoredMemoryPayload,
+      score: r.score,
+    };
+    const vec = r.vector as number[] | undefined;
+    return vec ? { ...base, vector: vec } : base;
+  });
+}
+
+/**
+ * Delete multiple memory points by their Qdrant IDs in a single call.
+ *
+ * Requirements: 7.4
+ */
+export async function deleteMemoriesByIds(ids: string[]): Promise<void> {
+  if (ids.length === 0) return;
+
+  await ensureCollection();
+  const client = getQdrantClient();
+
+  await client.delete(COLLECTION_NAME, {
+    wait: true,
+    points: ids,
+  });
+
+  console.log(`[MemoryRepo] Deleted ${ids.length} memory point(s): ${ids.join(', ')}.`);
+}
+
+/**
+ * Patch specific payload fields on an existing memory point without
+ * overwriting the rest of the payload (used to set `conflicted` /
+ * `conflictGroupId` for the `flag` resolution strategy).
+ *
+ * Requirements: 7.6
+ */
+export async function updateMemoryPayloadFields(
+  pointId: string,
+  fields: Partial<StoredMemoryPayload>,
+): Promise<void> {
+  await ensureCollection();
+  const client = getQdrantClient();
+
+  await client.setPayload(COLLECTION_NAME, {
+    payload: fields as Record<string, unknown>,
+    points: [pointId],
+    wait: true,
+  });
+
+  console.log(`[MemoryRepo] Updated payload fields on memory point ${pointId}.`);
 }

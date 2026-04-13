@@ -16,7 +16,12 @@ import {
   searchMemories,
   getMemoryPointById,
   updateMemoryPoint,
+  searchMemoriesScored,
+  deleteMemoriesByIds,
+  updateMemoryPayloadFields,
 } from '../repositories/memory.repository.js';
+import { checkBeforeStore } from '../services/conflict-detection.service.js';
+import { env } from '../config/env.js';
 import { AppError } from '../utils/AppError.js';
 import type {
   PlainTextInput,
@@ -26,6 +31,8 @@ import type {
   MemoryEntry,
   MemorySource,
   StoredMemoryPayload,
+  IncomingMemory,
+  ScoredMemory,
 } from '../types/memory.types.js';
 
 async function processText(
@@ -89,13 +96,102 @@ async function processText(
     } satisfies StoredMemoryPayload,
   }));
 
-  await upsertMemories(points);
+  let memoriesStoredCount = 0;
+
+  for (const point of points) {
+    const incomingMemory: IncomingMemory = {
+      text: point.payload.text,
+      vector: point.vector,
+      kind: point.payload.kind,
+      importance: point.payload.importance,
+      source: point.payload.source,
+      createdAt: point.payload.createdAt,
+    };
+
+    let candidates: ScoredMemory[] = [];
+    try {
+      candidates = await searchMemoriesScored(point.vector, userId, 10);
+    } catch (err) {
+      console.warn(
+        '[processText] Qdrant search failed, skipping conflict detection for this point:',
+        err instanceof Error ? err.message : err,
+      );
+      // Fail-open: upsert normally
+      await upsertMemories([point]);
+      memoriesStoredCount++;
+      continue;
+    }
+
+    const resolution = await checkBeforeStore(incomingMemory, candidates, env.CONFLICT_STRATEGY);
+
+    switch (resolution.action) {
+      case 'store': {
+        await upsertMemories([point]);
+        memoriesStoredCount++;
+        break;
+      }
+      case 'replace':
+      case 'merge': {
+        // Ownership check before delete
+        for (const id of resolution.pointsToDelete) {
+          const existing = candidates.find((c) => c.id === id);
+          if (existing && existing.payload.userId === userId) {
+            await deleteMemoriesByIds([id]);
+          } else {
+            console.warn(
+              `[processText] Skipping delete of point ${id}: ownership mismatch or not found`,
+            );
+          }
+        }
+        if (resolution.pointToStore) {
+          await upsertMemories([
+            {
+              vector: resolution.pointToStore.vector,
+              payload: { ...resolution.pointToStore, userId } as StoredMemoryPayload,
+            },
+          ]);
+          memoriesStoredCount++;
+        }
+        break;
+      }
+      case 'flag': {
+        if (resolution.pointToStore) {
+          await upsertMemories([
+            {
+              vector: resolution.pointToStore.vector,
+              payload: { ...resolution.pointToStore, userId } as StoredMemoryPayload,
+            },
+          ]);
+          memoriesStoredCount++;
+        }
+        // Mark existing conflicting points
+        if (resolution.conflictGroupId) {
+          for (const candidate of candidates) {
+            if (
+              candidate.score >= env.SIMILARITY_THRESHOLD &&
+              candidate.payload.userId === userId
+            ) {
+              await updateMemoryPayloadFields(candidate.id, {
+                conflicted: true,
+                conflictGroupId: resolution.conflictGroupId,
+              });
+            }
+          }
+        }
+        break;
+      }
+      case 'skip': {
+        // Near-duplicate: do not store
+        break;
+      }
+    }
+  }
 
   return {
     success: true,
-    message: `Successfully stored ${entries.length} memor${entries.length === 1 ? 'y' : 'ies'}.`,
+    message: `Successfully stored ${memoriesStoredCount} memor${memoriesStoredCount === 1 ? 'y' : 'ies'}.`,
     data: {
-      memoriesStored: entries.length,
+      memoriesStored: memoriesStoredCount,
       semantic: extracted.semantic,
       bubbles: extracted.bubbles,
     },
