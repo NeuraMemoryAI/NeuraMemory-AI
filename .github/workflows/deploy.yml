@@ -1,0 +1,57 @@
+name: Deploy to GCP VM
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'server/**'
+      - 'docker-compose.cloud.yml'
+      - 'startup.sh'
+      - '.github/workflows/deploy.yml'
+
+jobs:
+  deploy:
+    name: Deploy API to Compute Engine
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Google Auth
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          token_format: 'access_token'
+          workload_identity_provider: 'projects/31080282917/locations/global/workloadIdentityPools/github-pool/providers/github-provider'
+          service_account: 'github-actions-deploy@neuramemoryai.iam.gserviceaccount.com'
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: neuramemoryai
+
+      - name: Configure SSH
+        run: |
+          # Use gcloud to set up an OS Login SSH key temporarily
+          gcloud compute ssh neuramemory-vm --zone=us-central1-a --command="echo 'SSH setup completed.'" --quiet
+
+      - name: Wait (Workaround for OS Login propagation)
+        run: sleep 5
+
+      - name: Transfer Files to VM
+        run: |
+          # Compress the server folder and necessary root files
+          tar -cvf server-cloud.tar server/ docker-compose.cloud.yml startup.sh
+
+          # SCP archive to VM 
+          gcloud compute scp server-cloud.tar neuramemory-vm: --zone=us-central1-a --quiet
+
+      - name: Restart Docker Containers
+        run: |
+          gcloud compute ssh neuramemory-vm --zone=us-central1-a --quiet --command="tar -xvf server-cloud.tar && sudo docker compose -f docker-compose.cloud.yml up -d --build && rm server-cloud.tar"
