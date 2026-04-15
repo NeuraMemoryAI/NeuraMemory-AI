@@ -71,8 +71,19 @@ export async function sendMessage(
   const conversation = await getOrCreateConversation(userId);
   const conversationId = conversation.id;
 
-  // f. Truncation is handled by appendMessages — use last 20 messages for context
-  const recentMessages = conversation.messages.slice(-20);
+  // f. Truncation — use a character-based sliding window to prevent context overflow (approx 12k char limit)
+  let charCount = 0;
+  const recentMessages: IMessage[] = [];
+  const MAX_HISTORY_CHARS = 12000;
+
+  // Iterate backwards to keep the most recent messages
+  for (let i = conversation.messages.length - 1; i >= 0; i--) {
+    const msg = conversation.messages[i];
+    if (!msg) continue;
+    if (charCount + msg.content.length > MAX_HISTORY_CHARS) break;
+    recentMessages.unshift(msg);
+    charCount += msg.content.length;
+  }
 
   // g. LLM call
   const client = getOpenRouterClient();

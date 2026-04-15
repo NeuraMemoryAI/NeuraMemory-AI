@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { api } from '../lib/api';
+import SystemStatus from './SystemStatus';
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -137,6 +138,11 @@ const Navbar = () => {
           </span>
         </span>
       </button>
+
+      {/* System Status Indicator (New) */}
+      <div className="hidden md:block mr-auto ml-8">
+        <SystemStatus />
+      </div>
 
       {/* ── Right: nav links + avatar ────────────────────── */}
       <div className="flex items-center gap-3 sm:gap-4">

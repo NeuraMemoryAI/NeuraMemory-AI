@@ -23,6 +23,7 @@ import {
 import { checkBeforeStore } from '../services/conflict-detection.service.js';
 import { env } from '../config/env.js';
 import { AppError } from '../utils/AppError.js';
+import pLimit from 'p-limit';
 import type {
   PlainTextInput,
   DocumentInput,
@@ -32,7 +33,6 @@ import type {
   MemorySource,
   StoredMemoryPayload,
   IncomingMemory,
-  ScoredMemory,
 } from '../types/memory.types.js';
 
 async function processText(
@@ -96,7 +96,6 @@ async function processText(
     } satisfies StoredMemoryPayload,
   }));
 
-import pLimit from 'p-limit';
 
   const limit = pLimit(5);
   const results = await Promise.all(
@@ -148,7 +147,7 @@ import pLimit from 'p-limit';
       case 'merge': {
         // Ownership check before adding to delete set
         for (const id of resolution.pointsToDelete) {
-          const existing = candidates.find((c) => c.id === id);
+          const existing = candidates.find((c: any) => c.id === id);
           if (existing && existing.payload.userId === userId) {
             toDelete.add(id);
           }
@@ -171,11 +170,11 @@ import pLimit from 'p-limit';
         if (resolution.conflictGroupId) {
           const idsToFlag = candidates
             .filter(
-              (c) =>
+              (c: any) =>
                 c.score >= env.SIMILARITY_THRESHOLD &&
                 c.payload.userId === userId,
             )
-            .map((c) => c.id);
+            .map((c: any) => c.id);
           
           if (idsToFlag.length > 0) {
             toUpdatePayloads.push({

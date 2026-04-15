@@ -23,8 +23,6 @@ import {
   updateMemoryById,
 } from '../controllers/memories/memorie.controller.js';
 import {
-  loginRateLimiter,
-  registerRateLimiter,
   memoryRateLimiter,
 } from '../middleware/rateLimit.js';
 import { documentUpload } from '../middleware/upload.js';

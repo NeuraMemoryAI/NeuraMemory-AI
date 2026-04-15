@@ -1,33 +1,21 @@
-/**
- * Content extractors — convert raw inputs (URLs, documents) into plain text
- * that can be fed to the LLM for memory extraction.
- */
-
 import FirecrawlApp from '@mendable/firecrawl-js';
 import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist/legacy/build/pdf.mjs';
 import mammoth from 'mammoth';
 import { AppError } from './AppError.js';
+import { env } from '../config/env.js';
 
 // Disable the worker thread for pdfjs in Node.js server environments
 GlobalWorkerOptions.workerSrc = '';
 
-// ---------------------------------------------------------------------------
-// URL / Link content extraction
-// ---------------------------------------------------------------------------
-
 /**
  * Fetches a URL and returns the main textual content.
- *
- * We use Firecrawl to extract high-quality markdown directly from the website.
- * If Firecrawl fails, we automatically fall back to a self-hosted Crawl4AI instance.
  */
 export async function extractTextFromUrl(url: string): Promise<string> {
   try {
     const firecrawl = new FirecrawlApp({
-      apiKey: process.env['FIRECRAWL_API_KEY'] || '',
+      apiKey: env.FIRECRAWL_API_KEY || '',
     });
 
-    // Attempt to scrape the URL, asking Firecrawl for markdown format
     const response = (await firecrawl.scrape(url, {
       formats: ['markdown'],
     })) as {
@@ -66,7 +54,7 @@ export async function extractTextFromUrl(url: string): Promise<string> {
  * Fallback scraper using self-hosted Crawl4AI Docker container.
  */
 async function extractTextWithCrawl4AI(url: string): Promise<string> {
-  const baseUrl = process.env['CRAWL4AI_API_URL'] || 'http://localhost:11235';
+  const baseUrl = env.CRAWL4AI_API_URL;
   
   const submitRes = await fetch(`${baseUrl}/crawl/job`, {
     method: 'POST',
@@ -86,7 +74,7 @@ async function extractTextWithCrawl4AI(url: string): Promise<string> {
   }
   
   let attempts = 0;
-  const maxAttempts = 47; // 47 * 1.5s = ~70s
+  const maxAttempts = 47; 
   
   while (attempts < maxAttempts) {
     await new Promise(resolve => setTimeout(resolve, 1500));
@@ -101,8 +89,6 @@ async function extractTextWithCrawl4AI(url: string): Promise<string> {
     const statusData = await statusRes.json() as any;
     
     if (statusData?.status === 'completed') {
-      // Result object is heavily nested in crawl4ai output sometimes
-      // Typically: statusData.result.markdown or statusData.result[0].markdown 
       let markdown = '';
       if (statusData.result) {
         if (Array.isArray(statusData.result)) {
@@ -120,21 +106,16 @@ async function extractTextWithCrawl4AI(url: string): Promise<string> {
   throw new Error(`Crawl4AI job timed out after 70 seconds`);
 }
 
-// ---------------------------------------------------------------------------
-// Document text extraction
-// ---------------------------------------------------------------------------
-// Document content extraction
-// ---------------------------------------------------------------------------
-
 /**
  * Extracts text from an uploaded document buffer.
  *
  * Supported MIME types:
  *  - text/plain, text/markdown           → decode UTF‑8
- *  - text/csv                            → decode UTF-8 (tabular data)
- *  - application/pdf                     → pdfjs-dist (handles compressed streams, CIDFonts)
+ *  - text/csv                            → decode UTF-8
+ *  - application/json                    → parsed and pretty-printed
+ *  - application/pdf                     → pdfjs-dist
  *  - application/vnd.openxmlformats‑officedocument.wordprocessingml.document
- *                                        → mammoth (semantic HTML → plain text)
+ *                                        → mammoth
  */
 export async function extractTextFromDocument(
   buffer: Buffer,
@@ -144,7 +125,21 @@ export async function extractTextFromDocument(
     case 'text/plain':
     case 'text/markdown':
     case 'text/csv':
-      return buffer.toString('utf-8');
+      const csvLines = buffer.toString('utf-8').split('\n');
+      return csvLines
+        .map((line, idx) => `Row ${idx + 1}: ${line}`)
+        .join('\n');
+
+    case 'application/json':
+      try {
+        const json = JSON.parse(buffer.toString('utf-8'));
+        // Convert to a more descriptive structural format for LLM ingestion
+        return Object.entries(json)
+          .map(([key, val]) => `Field "${key}": ${typeof val === 'object' ? JSON.stringify(val) : val}`)
+          .join('\n');
+      } catch {
+        throw new AppError(422, 'Invalid JSON file.');
+      }
 
     case 'application/pdf':
       return extractTextFromPdfBuffer(buffer);
@@ -155,7 +150,7 @@ export async function extractTextFromDocument(
     default:
       throw new AppError(
         415,
-        `Unsupported document type: ${mimetype}. Supported: PDF, DOCX, TXT, MD, CSV.`,
+        `Unsupported document type: ${mimetype}. Supported: PDF, DOCX, TXT, MD, CSV, JSON.`,
       );
   }
 }
