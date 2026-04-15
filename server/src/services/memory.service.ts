@@ -233,12 +233,16 @@ export async function processDocument(
         input.mimetype,
       )
     : await extractTextFromDocument(input.buffer, input.mimetype);
-  return processText(text, input.userId, 'document', input.filename);
+  
+  const limit = pLimit(3); 
+  return limit(() => processText(text, input.userId, 'document', input.filename));
 }
 
 export async function processLink(input: LinkInput): Promise<MemoryResponse> {
   const text = await extractTextFromUrl(input.url);
-  return processText(text, input.userId, 'link', input.url);
+  
+  const limit = pLimit(5);
+  return limit(() => processText(text, input.userId, 'link', input.url));
 }
 
 export async function getUserMemories(

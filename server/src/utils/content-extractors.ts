@@ -74,7 +74,7 @@ async function extractTextWithCrawl4AI(url: string): Promise<string> {
   }
   
   let attempts = 0;
-  const maxAttempts = 47; 
+  const maxAttempts = 15; // ~22 seconds total (1.5s * 15)
   
   while (attempts < maxAttempts) {
     await new Promise(resolve => setTimeout(resolve, 1500));
@@ -103,7 +103,7 @@ async function extractTextWithCrawl4AI(url: string): Promise<string> {
     }
   }
   
-  throw new Error(`Crawl4AI job timed out after 70 seconds`);
+  throw new Error(`Crawl4AI job timed out after ${attempts * 1.5} seconds. The upstream scraper is likely overloaded.`);
 }
 
 /**

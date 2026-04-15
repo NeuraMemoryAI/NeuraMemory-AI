@@ -117,8 +117,15 @@ async function main(): Promise<void> {
   logStartupBanner();
 
   try {
+    // Ensure DB Connectivity
+    const { checkConnectivity } = await import('./lib/postgres.js');
+    const isDbConnected = await checkConnectivity();
+    if (!isDbConnected) {
+      throw new Error('Could not connect to PostgreSQL. Ensure the local service is running on port 5432.');
+    }
+
     await ensureDatabaseSchema();
-    logger.info('[Startup] Database schema verified.');
+    logger.info('[Startup] Database connectivity and schema verified.');
 
     const qdrant = getQdrantClient();
     await qdrant.getCollections();

@@ -20,10 +20,15 @@ export async function ensureDatabaseSchema(): Promise<void> {
       email         TEXT        NOT NULL UNIQUE,
       password_hash TEXT        NOT NULL,
       api_key       TEXT,
+      token_version INTEGER     NOT NULL DEFAULT 1,
       created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
       updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
     )
   `);
+
+  await query(`CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_conversations_user_date ON conversations(user_id, created_at DESC)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_memories_user_kind ON memories(user_id, kind)`);
   await query(`
     CREATE INDEX IF NOT EXISTS idx_users_api_key
     ON users (api_key) WHERE api_key IS NOT NULL
@@ -41,6 +46,25 @@ export async function ensureDatabaseSchema(): Promise<void> {
   `);
 }
 
+/**
+ * Returns simple storage statistics for maintenance monitoring.
+ */
+export async function getStorageStats(): Promise<Record<string, string>> {
+  const result = await query<{ table_name: string; total_size: string }>(`
+    SELECT 
+      relname as table_name, 
+      pg_size_pretty(pg_total_relation_size(relid)) as total_size
+    FROM pg_catalog.pg_statio_user_tables
+    ORDER BY pg_total_relation_size(relid) DESC;
+  `);
+
+  const stats: Record<string, string> = {};
+  result.rows.forEach(row => {
+    stats[row.table_name] = row.total_size;
+  });
+  return stats;
+}
+
 // ---------------------------------------------------------------------------
 // Row → domain mapping
 // ---------------------------------------------------------------------------
@@ -50,6 +74,7 @@ function rowToUser(row: UserRow): IUser & { id: string } {
     id: row.id,
     email: row.email,
     passwordHash: row.password_hash,
+    tokenVersion: row.token_version,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };

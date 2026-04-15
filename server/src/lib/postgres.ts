@@ -12,18 +12,17 @@ let pool: pg.Pool | null = null;
 
 export function getPool(): pg.Pool {
   if (!pool) {
-    // Note: Node.js is async. 20 physical connections can easily handle
-    // 100+ simultaneous users performing sporadic API requests.
+    // Optimized for local VM residency.
     pool = new Pool({
       connectionString: env.DATABASE_URL,
-      max: 20,                          // Max connections in pool
-      idleTimeoutMillis: 30000,         // How long a client is allowed to remain idle before being closed
-      connectionTimeoutMillis: 2000,    // Return an error if a connection cannot be established within this time
-      maxUses: 7500,                    // Close connection after 7500 uses to prevent memory leaks
+      max: 25,                          // Increased for dedicated local instance
+      idleTimeoutMillis: 10000,         // Standard 10s timeout
+      connectionTimeoutMillis: 5000,
+      maxUses: 10000,                   // Extended lifespan for local connections
     });
 
     pool.on('connect', () => {
-      logger.info('[PostgreSQL] New client connected to pool');
+      logger.info('[PostgreSQL] New client connected to local pool');
     });
 
     pool.on('error', (err: Error) => {
@@ -40,6 +39,19 @@ export async function query<
   T extends pg.QueryResultRow = Record<string, unknown>,
 >(text: string, params?: unknown[]): Promise<pg.QueryResult<T>> {
   return getPool().query<T>(text, params);
+}
+
+/**
+ * Verifies database connectivity.
+ */
+export async function checkConnectivity(): Promise<boolean> {
+  try {
+    await query('SELECT 1');
+    return true;
+  } catch (err) {
+    logger.error('[PostgreSQL] Connectivity check failed:', err);
+    return false;
+  }
 }
 
 /**
