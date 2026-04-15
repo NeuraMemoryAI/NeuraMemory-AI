@@ -66,6 +66,7 @@ const Signup = () => {
               type="email"
               className="bg-neutral-800 border border-gray-700 px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none transition rounded-lg"
               required
+              autoComplete="email"
               autoFocus
             />
           </div>
@@ -81,6 +82,7 @@ const Signup = () => {
               id="password"
               name="password"
               type="password"
+              autoComplete="new-password"
               className="bg-neutral-800 border border-gray-700 px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none transition rounded-lg"
               required
             />
@@ -100,6 +102,7 @@ const Signup = () => {
               id="confirmPassword"
               name="confirmPassword"
               type="password"
+              autoComplete="new-password"
               className="bg-neutral-800 border border-gray-700 px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none transition rounded-lg"
               required
             />

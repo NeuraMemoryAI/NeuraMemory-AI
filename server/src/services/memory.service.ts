@@ -18,11 +18,14 @@ import {
   updateMemoryPoint,
   searchMemoriesScored,
   deleteMemoriesByIds,
-  updateMemoryPayloadFields,
+  updatePayloadFields,
 } from '../repositories/memory.repository.js';
 import { checkBeforeStore } from '../services/conflict-detection.service.js';
 import { env } from '../config/env.js';
 import { AppError } from '../utils/AppError.js';
+import { withTransaction } from '../lib/postgres.js';
+import { lockUser } from '../repositories/user.repository.js';
+import pLimit from 'p-limit';
 import type {
   PlainTextInput,
   DocumentInput,
@@ -32,7 +35,6 @@ import type {
   MemorySource,
   StoredMemoryPayload,
   IncomingMemory,
-  ScoredMemory,
 } from '../types/memory.types.js';
 
 async function processText(
@@ -96,106 +98,130 @@ async function processText(
     } satisfies StoredMemoryPayload,
   }));
 
-  let memoriesStoredCount = 0;
 
-  for (const point of points) {
-    const incomingMemory: IncomingMemory = {
-      text: point.payload.text,
-      vector: point.vector,
-      kind: point.payload.kind,
-      importance: point.payload.importance,
-      source: point.payload.source,
-      createdAt: point.payload.createdAt,
-    };
+  // Use single transaction + row lock to serialize ingestion per user
+  return await withTransaction(async (client) => {
+    // 1. Lock this user's record so no other ingestion runs concurrently for them
+    await lockUser(client, userId);
 
-    let candidates: ScoredMemory[] = [];
-    try {
-      candidates = await searchMemoriesScored(point.vector, userId, 10);
-    } catch (err) {
-      console.warn(
-        '[processText] Qdrant search failed, skipping conflict detection for this point:',
-        err instanceof Error ? err.message : err,
-      );
-      // Fail-open: upsert normally
-      await upsertMemories([point]);
-      memoriesStoredCount++;
-      continue;
-    }
+    const limit = pLimit(5);
+    const results = await Promise.all(
+      points.map((point) => 
+        limit(async () => {
+          const incomingMemory: IncomingMemory = {
+            text: point.payload.text,
+            vector: point.vector,
+            kind: point.payload.kind,
+            importance: point.payload.importance,
+            source: point.payload.source,
+            createdAt: point.payload.createdAt,
+          };
 
-    const resolution = await checkBeforeStore(incomingMemory, candidates, env.CONFLICT_STRATEGY);
-
-    switch (resolution.action) {
-      case 'store': {
-        await upsertMemories([point]);
-        memoriesStoredCount++;
-        break;
-      }
-      case 'replace':
-      case 'merge': {
-        // Ownership check before delete
-        for (const id of resolution.pointsToDelete) {
-          const existing = candidates.find((c) => c.id === id);
-          if (existing && existing.payload.userId === userId) {
-            await deleteMemoriesByIds([id]);
-          } else {
-            console.warn(
-              `[processText] Skipping delete of point ${id}: ownership mismatch or not found`,
+          try {
+            const candidates = await searchMemoriesScored(point.vector, userId, 10);
+            const resolution = await checkBeforeStore(
+              incomingMemory,
+              candidates,
+              env.CONFLICT_STRATEGY,
             );
+            return { point, candidates, resolution };
+          } catch (err) {
+            console.warn(
+              '[processText] Point processing failed, falling back to simple store:',
+              err instanceof Error ? err.message : err,
+            );
+            return {
+              point,
+              candidates: [],
+              resolution: { action: 'store', pointsToDelete: [], pointToStore: incomingMemory } as const,
+            };
           }
+        })
+      ),
+    );
+
+    const toUpsert: Array<{ vector: number[]; payload: StoredMemoryPayload }> = [];
+    const toDelete = new Set<string>();
+    const toUpdatePayloads: Array<{ ids: string[]; fields: Partial<StoredMemoryPayload> }> = [];
+
+    for (const { point, candidates, resolution } of results) {
+      switch (resolution.action) {
+        case 'store': {
+          toUpsert.push(point);
+          break;
         }
-        if (resolution.pointToStore) {
-          await upsertMemories([
-            {
+        case 'replace':
+        case 'merge': {
+          for (const id of resolution.pointsToDelete) {
+            const existing = candidates.find((c: any) => c.id === id);
+            if (existing && existing.payload.userId === userId) {
+              toDelete.add(id);
+            }
+          }
+          if (resolution.pointToStore) {
+            toUpsert.push({
               vector: resolution.pointToStore.vector,
               payload: { ...resolution.pointToStore, userId } as StoredMemoryPayload,
-            },
-          ]);
-          memoriesStoredCount++;
+            });
+          }
+          break;
         }
-        break;
-      }
-      case 'flag': {
-        if (resolution.pointToStore) {
-          await upsertMemories([
-            {
+        case 'flag': {
+          if (resolution.pointToStore) {
+            toUpsert.push({
               vector: resolution.pointToStore.vector,
               payload: { ...resolution.pointToStore, userId } as StoredMemoryPayload,
-            },
-          ]);
-          memoriesStoredCount++;
-        }
-        // Mark existing conflicting points
-        if (resolution.conflictGroupId) {
-          for (const candidate of candidates) {
-            if (
-              candidate.score >= env.SIMILARITY_THRESHOLD &&
-              candidate.payload.userId === userId
-            ) {
-              await updateMemoryPayloadFields(candidate.id, {
-                conflicted: true,
-                conflictGroupId: resolution.conflictGroupId,
+            });
+          }
+          if (resolution.conflictGroupId) {
+            const idsToFlag = candidates
+              .filter(
+                (c: any) =>
+                  c.score >= env.SIMILARITY_THRESHOLD &&
+                  c.payload.userId === userId,
+              )
+              .map((c: any) => c.id);
+            
+            if (idsToFlag.length > 0) {
+              toUpdatePayloads.push({
+                ids: idsToFlag,
+                fields: {
+                  conflicted: true,
+                  conflictGroupId: resolution.conflictGroupId,
+                },
               });
             }
           }
+          break;
         }
-        break;
-      }
-      case 'skip': {
-        // Near-duplicate: do not store
-        break;
+        case 'skip':
+          break;
       }
     }
-  }
 
-  return {
-    success: true,
-    message: `Successfully stored ${memoriesStoredCount} memor${memoriesStoredCount === 1 ? 'y' : 'ies'}.`,
-    data: {
-      memoriesStored: memoriesStoredCount,
-      semantic: extracted.semantic,
-      bubbles: extracted.bubbles,
-    },
-  };
+    // Execute batch operations
+    if (toDelete.size > 0) {
+      await deleteMemoriesByIds(Array.from(toDelete));
+    }
+    if (toUpsert.length > 0) {
+      await upsertMemories(toUpsert);
+    }
+    for (const update of toUpdatePayloads) {
+      await updatePayloadFields(update.ids, update.fields);
+    }
+
+    const memoriesStoredCount = toUpsert.length;
+
+    return {
+      success: true,
+      message: `Successfully processed document. Stored ${memoriesStoredCount} memory point(s).`,
+      data: {
+        memoriesStored: memoriesStoredCount,
+        semantic: extracted.semantic,
+        bubbles: extracted.bubbles,
+      },
+    };
+  });
 }
 
 export async function processPlainText(
@@ -214,12 +240,16 @@ export async function processDocument(
         input.mimetype,
       )
     : await extractTextFromDocument(input.buffer, input.mimetype);
-  return processText(text, input.userId, 'document', input.filename);
+  
+  const limit = pLimit(3); 
+  return limit(() => processText(text, input.userId, 'document', input.filename));
 }
 
 export async function processLink(input: LinkInput): Promise<MemoryResponse> {
   const text = await extractTextFromUrl(input.url);
-  return processText(text, input.userId, 'link', input.url);
+  
+  const limit = pLimit(5);
+  return limit(() => processText(text, input.userId, 'link', input.url));
 }
 
 export async function getUserMemories(

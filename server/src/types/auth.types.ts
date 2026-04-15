@@ -2,6 +2,7 @@ export interface IUser {
   email: string;
   passwordHash: string;
   apiKey?: string;
+  tokenVersion: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -14,6 +15,7 @@ export interface UserRow {
   email: string;
   password_hash: string;
   api_key: string | null;
+  token_version: number;
   created_at: Date;
   updated_at: Date;
 }
@@ -21,6 +23,7 @@ export interface UserRow {
 export interface AuthPayload {
   userId: string;
   email: string;
+  tokenVersion: number;
 }
 
 export interface AuthResponse {

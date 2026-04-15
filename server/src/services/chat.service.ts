@@ -12,6 +12,7 @@ import { AppError } from '../utils/AppError.js';
 import { env } from '../config/env.js';
 import type { IMessage } from '../types/chat.types.js';
 import type { StoredMemoryPayload } from '../types/memory.types.js';
+import { withBackoff } from '../utils/backoff.js';
 
 /**
  * Formats retrieved memories into a system prompt for the chat LLM.
@@ -71,30 +72,45 @@ export async function sendMessage(
   const conversation = await getOrCreateConversation(userId);
   const conversationId = conversation.id;
 
-  // f. Truncation is handled by appendMessages — use last 20 messages for context
-  const recentMessages = conversation.messages.slice(-20);
+  // f. Truncation — use a character-based sliding window to prevent context overflow (approx 12k char limit)
+  let charCount = 0;
+  const recentMessages: IMessage[] = [];
+  const MAX_HISTORY_CHARS = 12000;
+
+  // Iterate backwards to keep the most recent messages
+  for (let i = conversation.messages.length - 1; i >= 0; i--) {
+    const msg = conversation.messages[i];
+    if (!msg) continue;
+    if (charCount + msg.content.length > MAX_HISTORY_CHARS) break;
+    recentMessages.unshift(msg);
+    charCount += msg.content.length;
+  }
 
   // g. LLM call
   const client = getOpenRouterClient();
 
   let assistantContent: string;
   try {
-    const completion = await client.chat.completions.create({
-      model: env.CHAT_MODEL,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        ...recentMessages.map((m) => ({ role: m.role, content: m.content })),
-        { role: 'user', content: message },
-      ],
-    });
+    const completion = await withBackoff(() => 
+      client.chat.completions.create({
+        model: env.CHAT_MODEL,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          ...recentMessages.map((m) => ({ role: m.role, content: m.content })),
+          { role: 'user', content: message },
+        ],
+      }),
+      { maxRetries: 2, initialDelayMs: 1500 }
+    );
 
     assistantContent = completion.choices[0]?.message?.content ?? '';
     if (!assistantContent) {
       throw new Error('Empty response from LLM');
     }
-  } catch {
-    // h. If LLM call fails
-    throw new AppError(502, 'AI service unavailable. Please try again.');
+  } catch (err: any) {
+    const msg = err instanceof Error ? err.message : 'Unknown error';
+    console.error('[ChatService] LLM request failed after retries:', msg);
+    throw new AppError(502, `AI service unavailable: ${msg}. Please try again.`);
   }
 
   // i. Persist both messages

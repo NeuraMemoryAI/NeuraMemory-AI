@@ -58,6 +58,7 @@ const Login = () => {
               type="email"
               className="bg-neutral-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none transition"
               required
+              autoComplete="email"
               autoFocus
             />
           </div>
@@ -75,6 +76,7 @@ const Login = () => {
               type="password"
               className="bg-neutral-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none transition"
               required
+              autoComplete="current-password"
             />
           </div>
 

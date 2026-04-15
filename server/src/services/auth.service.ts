@@ -49,18 +49,22 @@ function signAuthToken(payload: AuthPayload): string {
  */
 function buildAuthResponse(
   message: string,
-  user: { id: string; email: string },
+  user: { id: string; email: string; tokenVersion: number },
 ): AuthResponse {
   const token = signAuthToken({
     userId: user.id,
     email: user.email,
+    tokenVersion: user.tokenVersion,
   });
 
   return {
     success: true,
     message,
     token,
-    user,
+    user: {
+      id: user.id,
+      email: user.email,
+    },
   };
 }
 
@@ -130,9 +134,10 @@ export async function registerService(
     const passwordHash = await hashPassword(password);
     const createdUser = await createUser(email, passwordHash);
 
-    return buildAuthResponse('Account created successfully.', {
+    return buildAuthResponse('User created successfully', {
       id: createdUser.id,
       email: createdUser.email,
+      tokenVersion: 1,
     });
   } catch (err) {
     logAuthError('register', email, err);
@@ -167,9 +172,10 @@ export async function loginService(
       throw new AppError(401, INVALID_CREDENTIALS_MESSAGE);
     }
 
-    return buildAuthResponse('Login successful.', {
+    return buildAuthResponse('Login successful', {
       id: existingUser.id,
       email: existingUser.email,
+      tokenVersion: existingUser.tokenVersion,
     });
   } catch (err) {
     logAuthError('login', email, err);
@@ -189,4 +195,12 @@ export async function generateApiService(
   await updateUserApiKey(userId, apiKey);
 
   return { apiKey };
+}
+
+/**
+ * Revokes all active sessions for a user by incrementing their tokenVersion.
+ */
+export async function revokeSessionsService(userId: string): Promise<void> {
+  const { query } = await import('../lib/postgres.js');
+  await query('UPDATE users SET token_version = token_version + 1 WHERE id = $1', [userId]);
 }
