@@ -1,5 +1,5 @@
 # ─── Build Stage ─────────────────────────────────────────────────────────────
-FROM node:24-slim AS builder
+FROM node:22-slim AS builder
 
 WORKDIR /app
 
@@ -13,7 +13,7 @@ COPY src ./src
 RUN npm run build
 
 # ─── Production Stage ─────────────────────────────────────────────────────────
-FROM node:24-slim AS runner
+FROM node:22-slim AS runner
 
 WORKDIR /app
 
