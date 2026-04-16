@@ -23,8 +23,6 @@ app.set('trust proxy', 1);
 app.use(helmet());
 app.use(cookieParser());
 app.use(express.json({ limit: '200kb' }));
-app.use(csrfProtection);
-
 // ---------------------------------------------------------------------------
 // CORS Configuration
 // ---------------------------------------------------------------------------
@@ -46,6 +44,8 @@ app.use(
     allowedHeaders: ['Content-Type', 'Authorization', 'x-api-key', 'mcp-session-id', 'x-csrf-token'],
   }),
 );
+
+app.use(csrfProtection);
 
 // ---------------------------------------------------------------------------
 // Documentation & Routes
