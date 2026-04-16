@@ -59,6 +59,7 @@ app.use('/api/v1', authRouter);
 app.use('/api/v1/memories', memoryRouter);
 app.use('/api/v1/mcp', mcpRouter);
 app.use('/api/v1/chat', chatRouter);
+app.use('/api/v1/health', healthRouter);
 app.use('/health', healthRouter);
 
 app.use(errorHandler);
