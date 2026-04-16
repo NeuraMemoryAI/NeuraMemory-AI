@@ -95,6 +95,7 @@ The Express server has been configured to "Trust Proxies" (so rate limiters work
   - `/server/src/routes` - API Routing
   - `/server/src/controllers` - Business logic and database access
   - `/server/src/lib` - Initializing clients like Qdrant and Postgres
+  - `/server/src/utils` - Utility functions including `chunking.ts` (essential for long-context memory processing).
 - `docker-compose.yml` - Local combined execution file
 - `docker-compose.cloud.yml` - Cloud execution (no frontend container needed)
 - `startup.sh` - One-time provisioning script for the GCP VM.

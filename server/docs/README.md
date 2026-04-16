@@ -52,11 +52,11 @@ server/
 
 ## Documentation
 
-For detailed information about the project's architecture and coding standards, please refer to:
+Detailed information about the project's architecture, API, and coding standards:
 
-- [Architecture Design](ARCHITECTURE.md) - Folder structure and data flow patterns
-- [Best Practices](BEST_PRACTICES.md) - Coding standards and conventions
-- [API Documentation](API.md) - Endpoint specifications and examples
+- [Architecture Design](ARCHITECTURE.md) — System layers, data flow (ingestion/retrieval), and infrastructure.
+- [API Documentation](API.md) — Authentication methods, error handling, rate limiting, and Swagger details.
+- [Best Practices](BEST_PRACTICES.md) — Coding standards, ESM, error handling patterns, and testing.
 
 ## Environment Variables
 
@@ -149,85 +149,12 @@ npm run format
 
 ## API Endpoints
 
-### Authentication
+We use **Swagger (OpenAPI 3.0)** for comprehensive, interactive API documentation.
 
-#### POST `/api/v1/register`
+- **Local Development**: [http://localhost:3000/api-docs](http://localhost:3000/api-docs)
+- **Production**: Refer to your deployed server URL at `/api-docs`.
 
-Register a new user account.
-
-**Request:**
-
-```json
-{
-  "email": "user@example.com",
-  "password": "SecurePass123"
-}
-```
-
-**Response (201):**
-
-```json
-{
-  "success": true,
-  "message": "Account created successfully.",
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "user": {
-    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-    "email": "user@example.com"
-  }
-}
-```
-
-**Password Requirements:**
-
-- Minimum 8 characters
-- At least one uppercase letter
-- At least one number
-
-#### POST `/api/v1/login`
-
-Authenticate an existing user.
-
-**Request:**
-
-```json
-{
-  "email": "user@example.com",
-  "password": "SecurePass123"
-}
-```
-
-**Response (200):**
-
-```json
-{
-  "success": true,
-  "message": "Login successful.",
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "user": {
-    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-    "email": "user@example.com"
-  }
-}
-```
-
-### Error Responses
-
-All endpoints return a consistent error format:
-
-```json
-{
-  "success": false,
-  "message": "Error description"
-}
-```
-
-**Common Status Codes:**
-
-- `400` - Bad Request (validation error)
-- `401` - Unauthorized (invalid credentials)
-- `409` - Conflict (duplicate email)
-- `500` - Internal Server Error
+See [API.md](API.md) for an overview of authentication and common patterns.
 
 ## Testing
 
@@ -325,25 +252,26 @@ See the root `docker-compose.yml` for a complete stack setup including PostgreSQ
 ### ✅ Completed
 
 - [x] Environment variable validation
-- [x] PostgreSQL connection and user repository
-- [x] Authentication system (register/login)
+- [x] PostgreSQL connection and repository patterns
+- [x] Authentication system (register/login/API Keys)
 - [x] Password hashing with bcrypt
 - [x] JWT token generation and validation
-- [x] Centralized error handling
+- [x] Centralized error handling (`AppError`)
 - [x] Request validation with Zod
-- [x] Comprehensive test suite
+- [x] Multi-modal extraction (Text, Link, Document/PDF/OCR)
+- [x] Vector embeddings with OpenRouter
+- [x] Semantic search and management with Qdrant
+- [x] Model Context Protocol (MCP) server
+- [x] Comprehensive test suite (`test.sh`)
 - [x] Docker containerization
 
-### 🚧 Planned
+### 🚧 Planned / Ongoing
 
-- [ ] Protected routes with JWT middleware
-- [ ] Memory upload endpoints
-- [ ] Vector embeddings with OpenRouter
-- [ ] Semantic search with Qdrant
-- [ ] Memory retrieval endpoints
+- [x] Memory retrieval endpoints (In productive use)
 - [ ] Knowledge graph visualization
-- [ ] Rate limiting
-- [ ] API documentation with OpenAPI/Swagger
+- [ ] Advanced Rate limiting (Tiered users)
+- [ ] Firecrawl integration for deeper web analysis
+- [ ] IDE Integrations (VSCode/Cursor plugin)
 
 ## Contributing
 

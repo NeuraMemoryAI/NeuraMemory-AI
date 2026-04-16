@@ -138,32 +138,34 @@ cp client/.env.example client/.env.production
 }
 ```
 
-## Project Structure
+## Project Status 🚀
 
-```text
-.
-├── client/              # React frontend
-├── server/              # Express API + services
-├── docker-compose.yml
-├── docker-compose.dev.yml
-├── DOCKER.md
-└── README.md
-```
+NeuraMemory-AI is currently in **active development** with a stable core. It is deployed as a distributed system:
+- **Frontend**: Hosted on Vercel for high performance and global edge delivery.
+- **Backend**: Hosted on a dedicated GCP VM with a reverse proxy setup to avoid CORS and performance bottlenecks.
 
-## Tech Stack
+---
 
-- Frontend: React, TypeScript, Vite, Tailwind CSS, Axios
-- Backend: Node.js, Express, TypeScript, Zod, JWT, Multer
-- Database: PostgresDB (user/account data), Qdrant (vector storage)
-- AI: OpenRouter (memory extraction and embeddings)
-- Processing: Firecrawl, pdfjs-dist, document parsers, local OCR fallback
-- Tooling: ESLint, Prettier, Vitest, Docker Compose
+## 🏗 System Design & Operations
 
-## Future prospects:
+For deep dives into how the system works and how to manage it, see:
 
-- To build our own "memory database" to make sure we are able to have custom architecture for this specific purpose
-- To improve to code for any inefficiencies in terms of modularity and the way we handle things
-- To ensure generic and custom support for as many platforms and IDEs as possible.
-- To improve the architecture such that local LLMs and BYOK features are supported seamlessly (For those who want to self-host)
-- Implement Installation guide for users
+- [**Developer Guide**](DEVELOPER_GUIDE.md) — Architecture, local setup, CI/CD, and repository map.
+- [**Production Ops Guide**](PROD_OPS_GUIDE.md) — Monitoring, logs, backups, and scaling instructions.
+- [**Server Docs**](server/docs/README.md) — API specifications, database design, and best practices.
+
+---
+
+## Key Features
+
+- **Multi-Modal Interaction**: Users can interact via text, links, files, and documents (including OCR support).
+- **Intelligent Memory Extraction**: Automatically distinguishes between episodic facts (bubbles) and semantic knowledge.
+- **Conversational Retrieval**: Talk to your memories using context-grounded RAG.
+- **Model Context Protocol (MCP)**: Native integration with AI tools like Claude for remote memory access.
+- **Local-First / Sovereignty**: You own your database; it can be fully self-hosted.
+
+---
+
+## How to Run
+...
 
