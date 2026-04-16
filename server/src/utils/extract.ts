@@ -36,8 +36,14 @@ export async function extractMemories(
   const allSemantic = new Set<string>();
   const allBubbles: ExtractedMemories['bubbles'] = [];
 
-  for (const chunk of chunks) {
-    const memories = await extractSingleChunk(chunk);
+  logger.info('[ExtractMemories] Starting extraction', {
+    textLength: text.length,
+    chunkCount: chunks.length,
+  });
+
+  for (let i = 0; i < chunks.length; i++) {
+    logger.info(`[ExtractMemories] Extracting chunk ${i + 1}/${chunks.length}`);
+    const memories = await extractSingleChunk(chunks[i]!);
     memories.semantic.forEach((item) => allSemantic.add(item));
     allBubbles.push(...memories.bubbles);
   }
