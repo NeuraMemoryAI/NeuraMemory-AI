@@ -12,7 +12,7 @@ import { splitIntoChunks } from './chunking.js';
 import { withBackoff } from './backoff.js';
 
 /** The model to use for extraction — tunable via env in the future */
-const EXTRACTION_MODEL = 'google/gemini-2.0-flash-001';
+const EXTRACTION_MODEL = 'google/gemini-flash-1.5';
 
 /** Maximum input text length sent to the LLM in a single chunk (characters) */
 const MAX_CHUNK_LENGTH = 40_000;
@@ -93,9 +93,11 @@ async function extractSingleChunk(
 
     return parseExtractionResponse(raw);
   } catch (err) {
-    const msg =
-      err instanceof Error ? err.message : 'Unknown error during extraction';
-    console.warn('[ExtractMemories] Chunk extraction failed, skipping chunk:', msg);
+    logger.error('[ExtractMemories] Chunk extraction failed critically:', {
+      error: err instanceof Error ? err.message : String(err),
+      stack: err instanceof Error ? err.stack : undefined,
+      model: EXTRACTION_MODEL,
+    });
     return { semantic: [], bubbles: [] };
   }
 }

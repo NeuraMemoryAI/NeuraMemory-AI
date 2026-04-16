@@ -67,6 +67,9 @@ async function processText(
   ];
 
   if (entries.length === 0) {
+    if (rawText.length > 20) {
+      logger.error(`[processText] Extraction yielded 0 results for significant input (${rawText.length} chars). Potential LLM extraction breakdown.`);
+    }
     return {
       success: true,
       message: 'Text processed but no extractable memories found.',
