@@ -5,7 +5,7 @@ WORKDIR /app
 
 # Install all dependencies (including devDependencies needed for tsc)
 COPY package*.json ./
-RUN npm ci
+RUN npm install
 
 # Copy source and compile TypeScript → dist/
 COPY tsconfig.json ./
@@ -22,7 +22,7 @@ RUN apk add --no-cache poppler-utils tesseract-ocr tesseract-ocr-data-eng ttf-de
 
 # Install only production dependencies
 COPY package*.json ./
-RUN npm ci --omit=dev
+RUN npm install --omit=dev
 
 # Copy compiled output from the builder stage
 COPY --from=builder /app/dist ./dist
