@@ -9,6 +9,8 @@ services:
       - ./server/.env
     environment:
       - NODE_ENV=production
+      - DATABASE_URL=postgresql://neuramemory:neuramemory@postgres:5432/neuramemory
+      - QDRANT_URL=http://qdrant:6333
     depends_on:
       - postgres
       - qdrant
