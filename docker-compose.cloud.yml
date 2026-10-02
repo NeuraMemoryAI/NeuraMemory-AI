@@ -70,21 +70,6 @@ services:
         reservations:
           memory: 512M
 
-  crawl4ai:
-    image: unclecode/crawl4ai:latest
-    container_name: neuramemory-crawl4ai
-    restart: unless-stopped
-    shm_size: '1gb'
-    networks:
-      - neuramemory-network
-    deploy:
-      resources:
-        limits:
-          cpus: '1.0'
-          memory: 2G
-        reservations:
-          memory: 1G
-
 volumes:
   postgres_data:
     driver: local

@@ -6,7 +6,6 @@ interface HealthStatus {
   checks: {
     postgres: { ok: boolean };
     qdrant: { ok: boolean };
-    crawl4ai: { ok: boolean };
   };
 }
 
@@ -25,7 +24,6 @@ const SystemStatus: React.FC = () => {
           checks: {
             postgres: { ok: false },
             qdrant: { ok: false },
-            crawl4ai: { ok: false },
           },
         });
       }
@@ -70,10 +68,6 @@ const SystemStatus: React.FC = () => {
             <StatusItem
               label="Vector DB"
               ok={health?.checks.qdrant.ok ?? false}
-            />
-            <StatusItem
-              label="Web Scraper"
-              ok={health?.checks.crawl4ai.ok ?? false}
             />
           </div>
           <div className="mt-3 pt-3 border-t border-white/5">
