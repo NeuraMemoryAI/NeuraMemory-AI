@@ -42,7 +42,6 @@ const envSchema = z.object({
     .string()
     .default('7d')
     .transform((val) => val.split('#')[0]!.trim()),
-  ADMIN_API_KEY: z.string().optional(),
   
   // App Logic
   ALLOWED_ORIGINS: z.string().default('http://localhost:5173'),
