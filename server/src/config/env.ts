@@ -24,7 +24,6 @@ const envSchema = z.object({
   
   // Scrapers / Ingestion
   FIRECRAWL_API_KEY: z.string().optional(),
-  CRAWL4AI_API_URL: z.string().url().default('http://localhost:11235'),
   UNSTRUCTURED_API_URL: z
     .string()
     .url()
@@ -43,7 +42,6 @@ const envSchema = z.object({
     .string()
     .default('7d')
     .transform((val) => val.split('#')[0]!.trim()),
-  ADMIN_API_KEY: z.string().min(1, 'ADMIN_API_KEY is required for secure operations'),
   
   // App Logic
   ALLOWED_ORIGINS: z.string().default('http://localhost:5173'),

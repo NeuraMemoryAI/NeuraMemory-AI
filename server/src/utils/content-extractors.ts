@@ -47,71 +47,8 @@ export async function extractTextFromUrl(url: string): Promise<string> {
     return markdown;
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    console.warn(`[ContentExtractor] Firecrawl failed (${message}). Falling back to Crawl4AI...`);
-    
-    try {
-      return await extractTextWithCrawl4AI(url);
-    } catch (crawlErr) {
-      const crawlMsg = crawlErr instanceof Error ? crawlErr.message : String(crawlErr);
-      throw new AppError(422, `Could not extract content from URL (Both Firecrawl & Crawl4AI failed). Error: ${crawlMsg}`);
-    }
+    throw new AppError(422, `Could not extract content from URL. Error: ${message}`);
   }
-}
-
-/**
- * Fallback scraper using self-hosted Crawl4AI Docker container.
- */
-async function extractTextWithCrawl4AI(url: string): Promise<string> {
-  const baseUrl = env.CRAWL4AI_API_URL;
-  
-  const submitRes = await fetch(`${baseUrl}/crawl/job`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ urls: url, priority: 10 }),
-  });
-  
-  if (!submitRes.ok) {
-    throw new Error(`Failed to submit job to Crawl4AI. HTTP: ${submitRes.status}`);
-  }
-  
-  const submitData = await submitRes.json() as any;
-  const taskId = submitData?.task_id;
-  
-  if (!taskId) {
-    throw new Error(`No task_id returned from Crawl4AI payload`);
-  }
-  
-  let attempts = 0;
-  const maxAttempts = 15; // ~22 seconds total (1.5s * 15)
-  
-  while (attempts < maxAttempts) {
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    attempts++;
-    
-    const statusRes = await fetch(`${baseUrl}/job/${taskId}`);
-    if (!statusRes.ok) {
-      console.warn(`[Crawl4AI] Status check failed: HTTP ${statusRes.status}`);
-      continue;
-    }
-    
-    const statusData = await statusRes.json() as any;
-    
-    if (statusData?.status === 'completed') {
-      let markdown = '';
-      if (statusData.result) {
-        if (Array.isArray(statusData.result)) {
-           markdown = statusData.result[0]?.markdown || statusData.result[0]?.html || '';
-        } else {
-           markdown = statusData.result.markdown || statusData.result.html || '';
-        }
-      }
-      return markdown;
-    } else if (statusData?.status === 'failed') {
-      throw new Error(`Crawl4AI job explicitly failed: ${statusData.error || 'Unknown error'}`);
-    }
-  }
-  
-  throw new Error(`Crawl4AI job timed out after ${attempts * 1.5} seconds. The upstream scraper is likely overloaded.`);
 }
 
 /**
@@ -233,4 +170,3 @@ async function extractTextFromDocxBuffer(buffer: Buffer): Promise<string> {
     throw new AppError(422, `DOCX extraction failed: ${msg}`);
   }
 }
-

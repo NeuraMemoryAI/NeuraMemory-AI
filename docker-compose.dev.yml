@@ -10,6 +10,8 @@ services:
     command: npm run dev
     environment:
       - NODE_ENV=development
+      - DATABASE_URL=postgresql://neuramemory:neuramemory@postgres:5432/neuramemory
+      - QDRANT_URL=http://qdrant:6333
     volumes:
       - ./server/src:/app/src:ro
       - ./server/tsconfig.json:/app/tsconfig.json:ro
